@@ -72,7 +72,7 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
     const imagePayloadUrl = await this.resolveImagePayload(imageUrl);
 
     // =========================================================================
-    // TIER 1: GROQ VISION (llama-3.2-11b-vision-preview / llama-3.2-90b)
+    // TIER 1: GROQ VISION (qwen/qwen3.8-27b / qwen/qwen3.6-27b LPU)
     // =========================================================================
     this.reloadGroqKeys();
     if (this.groqKeys.length > 0) {
@@ -82,7 +82,7 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
         if (!apiKey) break;
 
         try {
-          const model = process.env.GROQ_VISION_MODEL || 'llama-3.2-11b-vision-preview';
+          const model = process.env.GROQ_VISION_MODEL || process.env.GROQ_MODEL_PRIMARY || 'qwen/qwen3.8-27b';
           const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -133,13 +133,13 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
     }
 
     // =========================================================================
-    // TIER 2: XKiro AI VISION (Qwen-VL OpenAI-Compatible endpoint)
+    // TIER 2: XKiro AI VISION (Qwen Vision/VL OpenAI-Compatible endpoint)
     // =========================================================================
     const xkiroKey = process.env.XKIRO_API_KEY;
     if (xkiroKey) {
       try {
         const xkiroBaseUrl = process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1';
-        const model = process.env.XKIRO_VISION_MODEL || 'qwen/qwen2.5-vl-72b-instruct';
+        const model = process.env.XKIRO_VISION_MODEL || process.env.XKIRO_MODEL || 'qwen/qwen3.8-max';
 
         const res = await fetch(`${xkiroBaseUrl}/chat/completions`, {
           method: 'POST',
