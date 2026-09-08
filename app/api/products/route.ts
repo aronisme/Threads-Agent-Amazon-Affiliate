@@ -55,7 +55,9 @@ export async function POST(req: NextRequest) {
       for (const line of lines) {
         const parts = line.split('|').map((p: string) => p.trim());
         if (parts.length >= 2) {
-          const [name, affiliateUrl, category, notes, imageUrl] = parts;
+          const [name, affiliateUrl, category, notes, imageUrl, videoUrl] = parts;
+          const mediaType = videoUrl ? 'VIDEO' : imageUrl ? 'IMAGE' : 'NONE';
+
           if (!conn) {
             const mockProd = {
               _id: `prod_mock_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -64,6 +66,8 @@ export async function POST(req: NextRequest) {
               category: category || 'general',
               notes: notes || '',
               imageUrl: imageUrl || null,
+              videoUrl: videoUrl || null,
+              mediaType,
               active: true,
               timesMentioned: 0,
               createdAt: new Date(),
@@ -77,6 +81,8 @@ export async function POST(req: NextRequest) {
               category: category || 'general',
               notes: notes || '',
               imageUrl: imageUrl || null,
+              videoUrl: videoUrl || null,
+              mediaType,
               active: true,
             });
             inserted.push(prod);
@@ -89,6 +95,8 @@ export async function POST(req: NextRequest) {
 
     // Support 3: Single product
     if (body.name && body.affiliateUrl) {
+      const mediaType = body.videoUrl ? 'VIDEO' : body.imageUrl ? 'IMAGE' : 'NONE';
+
       if (!conn) {
         const mockProd = {
           _id: `prod_mock_${Date.now()}`,
@@ -97,6 +105,8 @@ export async function POST(req: NextRequest) {
           category: body.category || 'general',
           notes: body.notes || '',
           imageUrl: body.imageUrl || null,
+          videoUrl: body.videoUrl || null,
+          mediaType,
           active: body.active !== false,
           timesMentioned: 0,
           createdAt: new Date(),
@@ -111,6 +121,8 @@ export async function POST(req: NextRequest) {
         category: body.category || 'general',
         notes: body.notes || '',
         imageUrl: body.imageUrl || null,
+        videoUrl: body.videoUrl || null,
+        mediaType,
         active: body.active !== false,
       });
       return NextResponse.json({ success: true, product: prod });

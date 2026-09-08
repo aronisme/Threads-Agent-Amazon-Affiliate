@@ -27,6 +27,18 @@ export type SocialAction = 'POST' | 'REPLY' | 'DO_NOTHING';
 
 export type AffiliateMode = 'NONE' | 'MENTION_ONLY' | 'SOFT_RECOMMENDATION' | 'DIRECT_LINK';
 
+export interface IVisualContext {
+  aestheticStyle: string;
+  dominantColors: string[];
+  materials: string[];
+  scaleAndForm: string;
+  keyVisualHooks: string[];
+  summaryDescription: string;
+  provider?: 'groq' | 'xkiro' | 'mistral' | 'heuristic' | 'mock';
+  modelUsed?: string;
+  analyzedAt?: Date;
+}
+
 export interface IProduct {
   _id?: string;
   name: string;
@@ -36,6 +48,9 @@ export interface IProduct {
   category: string;
   notes: string;
   imageUrl?: string;
+  videoUrl?: string;
+  mediaType?: 'NONE' | 'IMAGE' | 'VIDEO';
+  visualContext?: IVisualContext;
   useCases?: string[];
   allowedClaims?: string[];
   targetPersonas?: string[];
@@ -54,6 +69,9 @@ export interface IPost {
   creationId?: string;
   type: PostType;
   text: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO';
   productId?: string;
   parentId?: string;
   replyClass?: ReplyClass;

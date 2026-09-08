@@ -14,6 +14,7 @@ import jobQueue from '@/lib/scheduler/queue';
 import socialEngine from '@/lib/engines/socialEngine';
 import affiliateEngine from '@/lib/engines/affiliateEngine';
 import { enforceDisclosure } from '@/lib/compliance/disclosure';
+import visionRotator from '@/lib/ai/visionRotator';
 import { PostType, ReplyClass, AffiliateMode, SocialAction } from '@/types';
 
 export class WorkerRunner {
@@ -96,6 +97,46 @@ export class WorkerRunner {
       }
     }
 
+    // 2.1 Just-in-Time AI Vision Learning:
+    // If target product has an image and hasn't been visually analyzed yet, analyze it across Groq/xKiro/Mistral
+    let mediaType: 'TEXT' | 'IMAGE' | 'VIDEO' = 'TEXT';
+    let attachedImageUrl: string | undefined = undefined;
+    let attachedVideoUrl: string | undefined = undefined;
+
+    if (targetProduct && postType === 'CONTEXTUAL_PRODUCT') {
+      if (targetProduct.imageUrl && (!targetProduct.visualContext || !targetProduct.visualContext.aestheticStyle)) {
+        try {
+          console.info(`👁️ Learning product visuals for "${targetProduct.name}" across Groq/xKiro/Mistral Vision APIs...`);
+          const visionData = await visionRotator.analyzeProductImage({
+            imageUrl: targetProduct.imageUrl,
+            productName: targetProduct.name,
+            category: targetProduct.category,
+            notes: targetProduct.notes,
+          });
+
+          targetProduct.visualContext = visionData;
+          if (typeof targetProduct.save === 'function') {
+            await targetProduct.save();
+          }
+          console.info(`✅ AI Vision analysis completed via [${visionData.provider}/${visionData.modelUsed}]: Style: ${visionData.aestheticStyle}`);
+        } catch (visionErr) {
+          console.warn('⚠️ Vision analysis non-blocking error:', visionErr);
+        }
+      }
+
+      // Decide whether this post will be a Media Post (Image/Video) or Text-Only
+      const mediaRoll = Math.random();
+      if (targetProduct.videoUrl && mediaRoll < 0.25) {
+        mediaType = 'VIDEO';
+        attachedVideoUrl = targetProduct.videoUrl;
+      } else if (targetProduct.imageUrl && mediaRoll < 0.70) {
+        mediaType = 'IMAGE';
+        attachedImageUrl = targetProduct.imageUrl;
+      } else {
+        mediaType = 'TEXT';
+      }
+    }
+
     // 3. Select topic fallback
     if (!chosenTopic) {
       const availableTopics = state.persona.nicheTopics.length > 0 ? state.persona.nicheTopics : ['desk setup', 'gadgets'];
@@ -106,9 +147,12 @@ export class WorkerRunner {
     const recentPosts = await memoryEngine.getRecentPosts(5);
     const recentSummary = recentPosts.join(' | ');
 
-    // 5. Generate content with AI
+    // 5. Generate content with AI (passing visual grounding if media is attached)
     const sysPrompt = buildSystemPrompt(state.persona, state.currentMood);
-    const userPrompt = buildContentPrompt(postType, chosenTopic, targetProduct, recentSummary);
+    const userPrompt = buildContentPrompt(postType, chosenTopic, targetProduct, recentSummary, {
+      mediaType,
+      visualContext: targetProduct?.visualContext,
+    });
 
     const aiRes = await aiEngine.generate({
       messages: [
@@ -141,9 +185,11 @@ export class WorkerRunner {
     let publishedResult: any = null;
 
     if (state.autonomyLevel >= 1 && quality.passed) {
-      // Execute publish (or mock simulation in dryRunMode)
+      // Execute publish (attaching image or video when applicable)
       publishedResult = await threadsClient.publishPost({
         text: quality.sanitizedText,
+        imageUrl: attachedImageUrl,
+        videoUrl: attachedVideoUrl,
         replyToId: job.payload.parentThreadId,
       });
       if (publishedResult.success) {
@@ -159,12 +205,15 @@ export class WorkerRunner {
         creationId: publishedResult?.creationId || null,
         type: postType,
         text: quality.sanitizedText,
+        mediaType,
+        imageUrl: attachedImageUrl || null,
+        videoUrl: attachedVideoUrl || null,
         productId: targetProduct?._id || null,
         parentId: job.payload.parentThreadId || null,
         status,
         simulationData: {
           fitScore: quality.score,
-          reasoning: `Mood: ${state.currentMood} | Topic: ${chosenTopic} | Repetition: ${repCheck.score}% | Provider: ${aiRes.provider}`,
+          reasoning: `Mood: ${state.currentMood} | Media: ${mediaType} | Topic: ${chosenTopic} | Provider: ${aiRes.provider}`,
           targetTopic: chosenTopic,
         },
         publishedAt: status === 'PUBLISHED' ? new Date() : null,
@@ -175,10 +224,13 @@ export class WorkerRunner {
         threadsId: publishedResult?.threadsId || `mock_t_${Date.now()}`,
         type: postType,
         text: quality.sanitizedText,
+        mediaType,
+        imageUrl: attachedImageUrl || null,
+        videoUrl: attachedVideoUrl || null,
         status,
         simulationData: {
           fitScore: quality.score,
-          reasoning: `Mood: ${state.currentMood} | Topic: ${chosenTopic} | Provider: ${aiRes.provider}`,
+          reasoning: `Mood: ${state.currentMood} | Media: ${mediaType} | Topic: ${chosenTopic} | Provider: ${aiRes.provider}`,
           targetTopic: chosenTopic,
         },
         publishedAt: status === 'PUBLISHED' ? new Date() : null,

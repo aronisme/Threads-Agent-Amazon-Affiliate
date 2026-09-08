@@ -101,7 +101,48 @@ export class ThreadsClient {
   }
 
   /**
-   * Complete flow: create container + publish (with optional short wait for media processing)
+   * Poll container status for async image/video transcoding before publishing
+   */
+  public async waitForMediaReady(creationId: string, maxWaitSeconds: number = 20): Promise<boolean> {
+    if (this.isDryRun || !this.isConfigured()) {
+      return true;
+    }
+
+    const url = `${THREADS_API_BASE}/${creationId}?fields=status,error_message&access_token=${this.accessToken}`;
+    const startTime = Date.now();
+    const maxDurationMs = maxWaitSeconds * 1000;
+
+    while (Date.now() - startTime < maxDurationMs) {
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const status = data.status;
+
+        if (status === 'FINISHED') {
+          return true;
+        }
+
+        if (status === 'ERROR' || status === 'EXPIRED') {
+          throw new Error(
+            `Threads media processing failed: ${status} (${data.error_message || 'media processing error'})`
+          );
+        }
+
+        // IN_PROGRESS: wait 2 seconds before checking again
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch (err: any) {
+        if (err.message?.includes('Threads media processing failed')) throw err;
+        console.warn(`⚠️ Error polling container status for ${creationId}:`, err);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    console.warn(`⚠️ Container ${creationId} wait timed out after ${maxWaitSeconds}s. Attempting publish anyway.`);
+    return true;
+  }
+
+  /**
+   * Complete flow: create container + wait for media ready + publish
    */
   public async publishPost(options: ThreadsPostOptions): Promise<ThreadsPublishResult> {
     try {
@@ -120,12 +161,12 @@ export class ThreadsClient {
       // Step 1: Create Container
       const { id: creationId } = await this.createContainer(options);
 
-      // Media requires a 2-3s processing pause before publishing
+      // Step 2: If image or video, wait for Meta to finish transcoding/preparing
       if (options.imageUrl || options.videoUrl) {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await this.waitForMediaReady(creationId, options.videoUrl ? 25 : 12);
       }
 
-      // Step 2: Publish Container
+      // Step 3: Publish Container
       const { id: threadsId } = await this.publishContainer(creationId);
 
       return {

@@ -14,6 +14,13 @@ const PostSchema = new Schema<PostDocument>(
       index: true,
     },
     text: { type: String, required: true },
+    imageUrl: { type: String, default: null, trim: true },
+    videoUrl: { type: String, default: null, trim: true },
+    mediaType: {
+      type: String,
+      enum: ['TEXT', 'IMAGE', 'VIDEO'],
+      default: 'TEXT',
+    },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
     parentId: { type: String, default: null, index: true },
     replyClass: {

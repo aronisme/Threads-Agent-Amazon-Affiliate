@@ -1,12 +1,18 @@
-import { PostType, IProduct } from '@/types';
+import { PostType, IProduct, IVisualContext } from '@/types';
 
 export function buildContentPrompt(
   type: PostType,
   topic: string,
   productKnowledge?: IProduct | null,
-  recentPostsSummary?: string
+  recentPostsSummary?: string,
+  options?: {
+    mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO';
+    visualContext?: IVisualContext;
+  }
 ): string {
   let instruction = '';
+  const mediaType = options?.mediaType || 'TEXT';
+  const visual = options?.visualContext || productKnowledge?.visualContext;
 
   switch (type) {
     case 'ORIGINAL_THOUGHT':
@@ -29,9 +35,24 @@ Format: A tiny problem you ran into -> how absurd or relatable it was -> the tak
       if (!productKnowledge) {
         instruction = `Write a casual opinion about "${topic}".`;
       } else {
+        const visualBlock =
+          (mediaType === 'IMAGE' || mediaType === 'VIDEO') && visual
+            ? `
+ATTACHED MEDIA CONTEXT (${mediaType === 'VIDEO' ? 'Video Reel' : 'Photo'}):
+- Aesthetic: ${visual.aestheticStyle}
+- Visible Colors & Materials: ${visual.dominantColors.join(', ')} | ${visual.materials.join(', ')}
+- Form & Scale: ${visual.scaleAndForm}
+- Visual Hooks: ${visual.keyVisualHooks.join('; ')}
+
+MEDIA POST INSTRUCTION:
+Since you are attaching a ${mediaType === 'VIDEO' ? 'short video' : 'photo'} of this item to the post, naturally reference physical details you can see (e.g. how clean the matte finish looks in person, how surprisingly compact it is on a desk, or the clever cable routing).
+Do NOT say "in this photo" or "check out this image". Talk like someone sharing a real photo of their actual daily desk setup.`
+            : '';
+
         instruction = `You are discussing a clever tool or design related to "${topic}":
 Item: ${productKnowledge.name}
 Details: ${productKnowledge.notes || 'a practical everyday accessory'}
+${visualBlock}
 
 TASK: Share a natural everyday observation about the specific annoyance this type of tool addresses.
 RULES:
