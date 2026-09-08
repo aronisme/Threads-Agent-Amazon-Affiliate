@@ -54,8 +54,8 @@ export async function GET(req: NextRequest) {
 
     // 3. Fetch username/profile
     const client = new ThreadsClient(userId, finalAccessToken, false);
-    const profile = await client.getProfile().catch(() => ({ username: 'amzonaff' }));
-    const username = profile.username || 'amzonaff';
+    const profile = await client.getProfile().catch(() => ({ username: 'averyfoundit' }));
+    const username = profile.username || 'averyfoundit';
 
     // 4. Save to AgentState & update process.env & .env.local
     process.env.THREADS_USER_ID = userId;
@@ -69,11 +69,15 @@ export async function GET(req: NextRequest) {
       DRY_RUN: 'false',
     });
 
+    const currentState = await stateManager.getState();
     await stateManager.updateState({
       dryRunMode: false,
+      threadsUserId: userId,
+      hasToken: true,
       persona: {
-        ...(await stateManager.getState()).persona,
-        identityName: `@${username}`,
+        ...currentState.persona,
+        identityName: 'Avery',
+        avatarUrl: profile.threads_profile_picture_url || currentState.persona?.avatarUrl || '/avatar.jpg',
       },
     });
 

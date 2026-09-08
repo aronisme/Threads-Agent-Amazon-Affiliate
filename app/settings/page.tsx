@@ -25,7 +25,7 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('connected') === 'true') {
-        const user = params.get('username') || 'amzonaff';
+        const user = params.get('username') || 'averyfoundit';
         setConnectionStatus({
           success: true,
           message: `🎉 Akun @${user} berhasil terhubung via Threads OAuth! Mode Dry-Run dinonaktifkan.`,
@@ -50,7 +50,7 @@ export default function SettingsPage() {
           if (data.state.hasToken) {
             setConnectionStatus({
               success: true,
-              message: `✅ Akun terhubung (${data.state.threadsUserId || '@amzonaff'}). Siap beroperasi live.`,
+              message: `✅ Akun terhubung (@averyfoundit - ID: ${data.state.threadsUserId || '28237007615909546'}). Siap beroperasi live.`,
             });
           }
         }
@@ -186,15 +186,15 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300">
             <span className="w-5 h-5 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs">@</span>
-            {strings.threadsConnectionTitle} (@amzonaff)
+            {strings.threadsConnectionTitle} (@averyfoundit)
           </div>
           <span className="text-[11px] text-zinc-500 font-mono">App ID: 2641379366258147</span>
         </div>
 
         <p className="text-xs text-zinc-400">
           {language === 'id'
-            ? 'Akun Threads Anda (@amzonaff) dapat dihubungkan menggunakan 2 cara mudah:'
-            : 'Your Threads account (@amzonaff) can be connected using 2 easy methods:'}
+            ? 'Akun Threads Anda (@averyfoundit) dapat dihubungkan menggunakan 2 cara mudah:'
+            : 'Your Threads account (@averyfoundit) can be connected using 2 easy methods:'}
         </p>
 
         {/* Option 1: One-Click OAuth Login */}
@@ -208,8 +208,8 @@ export default function SettingsPage() {
             </h3>
             <p className="text-[11px] text-zinc-400 mt-0.5">
               {language === 'id'
-                ? 'Login ke akun @amzonaff dan berikan izin publikasi. Token 60 hari akan tersimpan otomatis.'
-                : 'Log in to @amzonaff and grant publishing permissions. 60-day token will be securely saved.'}
+                ? 'Login ke akun @averyfoundit dan berikan izin publikasi. Token 60 hari akan tersimpan otomatis.'
+                : 'Log in to @averyfoundit and grant publishing permissions. 60-day token will be securely saved.'}
             </p>
           </div>
           <a
@@ -228,8 +228,8 @@ export default function SettingsPage() {
           </h3>
           <p className="text-[11px] text-zinc-400 mb-3">
             {language === 'id'
-              ? 'Atau jika Anda sudah klik "Generate Token" di Meta Developer Dashboard untuk @amzonaff, tempelkan ID dan Tokennya di bawah ini:'
-              : 'Or if you have generated a token in Meta Developer Dashboard for @amzonaff, paste the ID and Token below:'}
+              ? 'Atau jika Anda sudah klik "Generate Token" di Meta Developer Dashboard untuk @averyfoundit, tempelkan ID dan Tokennya di bawah ini:'
+              : 'Or if you have generated a token in Meta Developer Dashboard for @averyfoundit, paste the ID and Token below:'}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,7 +239,7 @@ export default function SettingsPage() {
                 type="text"
                 value={threadsUserId}
                 onChange={(e) => setThreadsUserId(e.target.value)}
-                placeholder="e.g. 17841400123456789 atau @amzonaff"
+                placeholder="e.g. 28237007615909546 atau @averyfoundit"
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500 font-mono"
               />
             </div>

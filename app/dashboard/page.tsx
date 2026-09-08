@@ -141,27 +141,45 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Top Banner / Hero */}
       <div className="glass-card rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="space-y-2 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
-              {language === 'id' ? 'Agen Aktif' : 'Agent Active'}
-            </span>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs border font-medium ${autonomy.color}`}>
-              {autonomy.label}
-            </span>
-            {state?.dryRunMode && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                {strings.statusDryRun}
-              </span>
-            )}
+        <div className="flex items-start md:items-center gap-4 relative z-10">
+          <div className="relative shrink-0">
+            <img
+              src={state?.persona?.avatarUrl || '/avatar.jpg'}
+              alt={state?.persona?.identityName || 'Avery'}
+              className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border-2 border-zinc-700 shadow-xl shadow-black/40"
+              onError={(e: any) => {
+                e.currentTarget.src = '/avatar.jpg';
+              }}
+            />
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-zinc-900 shadow-sm" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-            {state?.persona?.identityName || 'Alex'} • {strings.brandName}
-          </h1>
-          <p className="text-zinc-400 text-sm max-w-2xl">
-            {state?.persona?.tagline || (language === 'id' ? 'Mengamati, mengobrol, dan membagikan pandangan otentik di Threads.' : 'Observing, conversing, and sharing authentic perspectives on Threads.')}
-          </p>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
+                {language === 'id' ? 'Kreator Terhubung' : 'Creator Live'}
+              </span>
+              <span className="text-xs font-mono text-zinc-300">@averyfoundit</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs border font-medium ${autonomy.color}`}>
+                {autonomy.label}
+              </span>
+              {state?.dryRunMode && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  {strings.statusDryRun}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+              {state?.persona?.identityName || 'Avery'} • {strings.brandName}
+            </h1>
+            <p className="text-zinc-400 text-sm max-w-2xl">
+              {state?.persona?.tagline ||
+                (language === 'id'
+                  ? 'Menemukan hal-hal kecil untuk mempercantik meja kerja, tech sehari-hari & ngopi ☕✨'
+                  : 'finding the little things that make everyday life, desk setups & coffee runs better ☕✨')}
+            </p>
+          </div>
         </div>
 
         {/* Action Controls */}

@@ -195,6 +195,7 @@ export interface IJob {
 export interface IPersonaConfig {
   identityName: string;
   tagline: string;
+  avatarUrl?: string;
   humorLevel: number;       // 1-10
   sarcasmLevel: number;     // 1-10
   warmth: number;           // 1-10
@@ -229,6 +230,8 @@ export interface IAgentState {
   };
   autonomyLevel: AutonomyLevel;
   dryRunMode: boolean;
+  threadsUserId?: string;
+  hasToken?: boolean;
   commercialPressureScore?: number; // 0.0 to 1.0
   commercialBudget?: {
     dailyLimit: number;    // e.g. 2.5

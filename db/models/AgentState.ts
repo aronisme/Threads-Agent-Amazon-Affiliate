@@ -5,23 +5,43 @@ export interface AgentStateDocument extends Omit<IAgentState, '_id'>, Document {
 
 const PersonaSchema = new Schema(
   {
-    identityName: { type: String, default: 'Alex' },
-    tagline: { type: String, default: 'Curious tech enthusiast & minimalist desk builder' },
+    identityName: { type: String, default: 'Avery' },
+    avatarUrl: {
+      type: String,
+      default: 'https://res.cloudinary.com/dwgfox722/image/upload/v1788899953/zrji2sezxz1gy5hdpmjn.jpg',
+    },
+    tagline: {
+      type: String,
+      default: 'finding the little things that make everyday life, desk setups & coffee runs better ☕✨',
+    },
     humorLevel: { type: Number, default: 7, min: 1, max: 10 },
-    sarcasmLevel: { type: Number, default: 4, min: 1, max: 10 },
-    warmth: { type: Number, default: 7, min: 1, max: 10 },
+    sarcasmLevel: { type: Number, default: 3, min: 1, max: 10 },
+    warmth: { type: Number, default: 9, min: 1, max: 10 },
     slangFrequency: { type: Number, default: 5, min: 1, max: 10 },
     emojiFrequency: { type: Number, default: 2, min: 0, max: 5 },
-    salesiness: { type: Number, default: 2, min: 0, max: 5 },
+    salesiness: { type: Number, default: 1, min: 0, max: 5 },
     opinionatedness: { type: Number, default: 7, min: 1, max: 10 },
     postLength: { type: String, enum: ['short', 'medium', 'varied'], default: 'varied' },
     nicheTopics: {
       type: [String],
-      default: ['desk setup', 'work from home', 'everyday tech', 'productivity hacks', 'minimalism'],
+      default: [
+        'desk setup & workspace aesthetics',
+        'cozy work from home routines & habits',
+        'clever everyday tech & minimalist gadgets',
+        'coffee routines & cafe productivity',
+        'smart home office organization & lighting',
+        'curated Amazon finds that actually look good',
+      ],
     },
     topicsToAvoid: {
       type: [String],
-      default: ['politics', 'crypto spam', 'hard-sell affiliate jargon', 'get-rich-quick'],
+      default: [
+        'politics & controversial debates',
+        'crypto & web3 spam',
+        'hard-sell affiliate marketing & aggressive promos',
+        'cheap dropshipping junk',
+        'toxic hustle culture & grindset boasting',
+      ],
     },
   },
   { _id: false }

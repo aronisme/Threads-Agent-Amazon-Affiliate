@@ -23,16 +23,29 @@ export default function Header() {
       <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-3">
         {/* Brand Logo & Name */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-zinc-700 via-zinc-400 to-white flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-white/5 select-none">
-            @
+          <div className="relative">
+            <img
+              src="/avatar.jpg"
+              alt="Avery"
+              className="w-9 h-9 rounded-xl object-cover border border-zinc-700 shadow-md"
+              onError={(e: any) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-zinc-900" />
           </div>
           <div>
-            <Link
-              href="/dashboard"
-              className="text-base font-semibold tracking-tight text-white hover:text-zinc-200 transition"
-            >
-              {strings.brandName}
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard"
+                className="text-base font-semibold tracking-tight text-white hover:text-zinc-200 transition"
+              >
+                {strings.brandName}
+              </Link>
+              <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800/80 px-1.5 py-0.5 rounded border border-zinc-700/50">
+                @averyfoundit
+              </span>
+            </div>
             <p className="text-[11px] text-zinc-400 font-medium">
               {strings.brandTagline}
             </p>
