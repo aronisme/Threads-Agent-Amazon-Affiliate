@@ -471,7 +471,7 @@ export default function ProductsPage() {
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                           }`}
                         >
-                          {p.active ? (language === 'id' ? 'Aktif' : 'Active') : (language === 'id' ? 'Jeda' : 'Paused')}
+                          {p.active ? (language === 'id' ? 'Aktif' : 'Active') : (language === 'id' ? 'Dijeda' : 'Paused')}
                         </button>
                       </td>
 
