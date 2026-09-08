@@ -78,8 +78,8 @@ flowchart TD
     
     J -- COMPOSE_POST --> K[Pilih Topik & Tipe Konten]
     K --> L{Boleh Sebut Produk?}
-    L -- Ya 20% Roll --> M[Ambil Produk dari Vault]
-    L -- Tidak 80% Roll --> N[Konten Murni Pikiran/Pertanyaan/Cerita]
+    L -- Ya 35% Roll --> M[Ambil Produk dari Vault]
+    L -- Tidak 65% Roll --> N[Konten Murni Pikiran/Pertanyaan/Cerita]
     M --> O[Inference AI Groq Rotator]
     N --> O
     O --> P[Quality Gate Moderation]
@@ -159,33 +159,39 @@ Menyimpan seluruh konfigurasi dinamis, kepribadian, mood, serta counter pembatas
 {
   currentMood: 'CURIOUS' | 'CONTEMPLATIVE' | 'SARCASTIC' | 'CHILL' | 'HELPFUL',
   persona: {
-    identityName: string,       // Contoh: "Alex" atau "@amzonaff"
-    tagline: string,            // Bio / Filosofi kreator
-    humorLevel: number,         // Skala 1-10
-    sarcasmLevel: number,       // Skala 1-10
-    warmth: number,             // Skala 1-10
-    slangFrequency: number,     // Skala 1-10 (penggunaan: lowkey, tbh, ngl)
-    emojiFrequency: number,     // Skala 0-5
-    salesiness: number,         // Skala 0-5 (dijaga rendah, default: 1-2)
-    opinionatedness: number,    // Skala 1-10
+    identityName: string,       // "Avery" (@averyfoundit)
+    avatarUrl?: string,         // Foto profil Cloudinary / local avatar
+    tagline: string,            // Bio / Filosofi kreator (desk setups, cozy tech & coffee)
+    humorLevel: number,         // Skala 1-10 (default: 7)
+    sarcasmLevel: number,       // Skala 1-10 (default: 3)
+    warmth: number,             // Skala 1-10 (default: 9)
+    slangFrequency: number,     // Skala 1-10 (default: 5)
+    emojiFrequency: number,     // Skala 0-5 (default: 2)
+    salesiness: number,         // Skala 0-5 (default: 1, stealth mode)
+    opinionatedness: number,    // Skala 1-10 (default: 7)
     postLength: 'short' | 'medium' | 'varied',
-    nicheTopics: string[],      // Topik fokus (desk setup, remote work, gadget)
+    nicheTopics: string[],      // Topik fokus (desk setup, WFH, minimalist tech, coffee)
     topicsToAvoid: string[],    // Pantangan (politik, crypto spam, hard selling)
   },
-  recentTopics: string[],       // Rolling memory 15 topik terakhir
+  recentTopics: string[],       // Rolling memory topik terakhir
   recentHooks: string[],        // Kalimat pembuka yang baru dipakai
   recentPhrases: string[],      // Frasa yang dihindari agar tidak klise
   recentProducts: string[],     // Produk yang baru saja disebut
   cooldowns: {
-    productMentionUntil: Date,  // Cooldown antar promosi produk (default: 3 jam)
+    productMentionUntil: Date,  // Cooldown antar promosi produk (default: 2 jam)
     selfReplyUntil: Date,       // Jeda antar balasan mandiri
-    nextPostAllowedAt: Date,    // Jeda antar post utama (default: 45 menit)
+    nextPostAllowedAt: Date,    // Jeda antar post utama (default: 45 menit - 2.5 jam)
   },
   dailyActions: {
     date: string,               // YYYY-MM-DD untuk auto-reset tengah malam
-    postsCount: number,         // Jumlah postingan hari ini
+    postsCount: number,         // Jumlah postingan hari ini (Max: 8 post / hari)
     repliesCount: number,       // Jumlah balasan hari ini
     productMentionsCount: number// Jumlah penyebutan produk hari ini
+  },
+  commercialBudget: {
+    dailyLimit: number,         // Default: 4.0 poin / hari
+    currentSpent: number,       // Bobot terpakai (direct_link=1.0, soft_rec=0.4, mention=0.15)
+    lastResetDate: string
   },
   autonomyLevel: 0 | 1 | 2 | 3, // 0=Manual, 1=Simulasi, 2=Auto-Post, 3=Full-Auto
   dryRunMode: boolean           // True = Jangan kirim ke Threads asli

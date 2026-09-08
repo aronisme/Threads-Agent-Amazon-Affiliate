@@ -33,9 +33,10 @@
    - [6.2 Penanganan CORS & Autentikasi](#62-penanganan-cors--autentikasi)
    - [6.3 Guardrail Out-of-Stock & Filter Serverless](#63-guardrail-out-of-stock--filter-serverless)
 7. [Media Decision Engine & Alur Rotasi Visual](#7-media-decision-engine--alur-rotasi-visual)
-8. [Sistem Internasionalisasi (i18n) & UI Multibahasa](#8-sistem-internasionalisasi-i18n--ui-multibahasa)
-9. [Skema Database Mongoose / MongoDB](#9-skema-database-mongoose--mongodb)
-10. [Panduan Deployment Vercel & Google Apps Script Setup](#10-panduan-deployment-vercel--google-apps-script-setup)
+8. [Ritme Postingan, Anggaran Afiliasi & Status Vault](#8-ritme-postingan-anggaran-afiliasi--status-vault)
+9. [Sistem Internasionalisasi (i18n) & UI Multibahasa](#9-sistem-internasionalisasi-i18n--ui-multibahasa)
+10. [Skema Database Mongoose / MongoDB](#10-skema-database-mongoose--mongodb)
+11. [Panduan Deployment Vercel & Google Apps Script Setup](#11-panduan-deployment-vercel--google-apps-script-setup)
 
 ---
 
@@ -66,8 +67,10 @@
 |                                                |                                        |
 |   +--------------------------------------------v-------------------------------------+  |
 |   |                        AUTONOMOUS EXECUTION LOOP (Cron Driven)                   |  |
-|   |  - 80% Konten Organik (Spontan, Diskusi, Observasi Kreator Asli)                 |  |
-|   |  - 20% Sebutan Produk Halus (Stealth Funnel: Top Post Bersih, Link di Self-Reply)|  |
+|   |  - Max Kuota Harian: 8 Postingan / Hari (Jam Aktif US: 07:00 - 23:00 ET)         |  |
+|   |  - 65% Konten Organik (Spontan, Diskusi, Observasi Kreator Asli)                 |  |
+|   |  - 35% Sebutan Produk Halus (Stealth Funnel: Top Post Bersih, Link di Self-Reply)|  |
+|   |  - Commercial Budget: 4.0 Poin / Hari (Cooldown Sebutan Produk: 2 Jam)           |  |
 |   |  - Multi-Key Groq LPU Rotator -> xKiro Flagship -> Mistral Failover              |  |
 |   +----------------------------------------------------------------------------------+  |
 +-----------------------------------------------------------------------------------------+
@@ -75,18 +78,21 @@
        v                                                                           v
 +-----------------------------+                               +---------------------------+
 |    META THREADS GRAPH API   |                               |      DASHBOARD WEB UI     |
-|   - Container Creation      |                               |  - Next.js + Tailwind CSS |
-|   - Container Publishing    |                               |  - i18n (🇮🇩 ID / 🇺🇸 EN)  |
-|   - Token Auto-Refresh      |                               |  - Persona & Vault Studio |
+|   - Akun: @averyfoundit     |                               |  - Next.js + Tailwind CSS |
+|   - Container Creation      |                               |  - i18n (🇮🇩 ID / 🇺🇸 EN)  |
+|   - Container Publishing    |                               |  - Persona & Vault Studio |
+|   - Token Auto-Refresh      |                               |  - Foto Profil & Status   |
 +-----------------------------+                               +---------------------------+
 ```
 
 ### Karakteristik Inti Sistem:
-1. **Stealth Soft-Sell Funnel**: Postingan utama tidak pernah menyertakan tautan afiliasi atau bahasa jualan katalog. Tautan Amazon hanya disematkan pada balasan sendiri (*delayed self-reply*) jika relevan.
-2. **Media Decision Engine**: Menghindari pemuatan media bertumpuk (*multi-media dump*) yang tidak wajar. Agen merotasi aset visual secara proporsional: 45% gambar tunggal, 20% video tunggal, 35% teks murni.
-3. **Automatic Cloudinary Rehosting**: Mengunduh media Amazon secara aman melalui serverless buffer dengan User-Agent browser untuk memotong proteksi anti-hotlink HTTP 403, lalu menyimpannya di Cloudinary pribadi.
-4. **Passive Knowledge Vault**: Penambahan produk dari Chrome Extension tidak langsung memicu spam postingan otomatis, melainkan tersimpan sebagai memori bawah sadar (*subconscious knowledge*) yang diangkat secara alami.
-5. **Dukungan Penuh Bahasa Indonesia**: Panel kendali web dilengkapi fitur pengubah bahasa instan (ID/EN) dengan terminologi kreator yang natural.
+1. **Identitas Terverifikasi (@averyfoundit)**: Terhubung ke akun asli Avery, kreator konten penataan meja (*aesthetic desk setup*), gadget harian minimalis, dan rutinitas ngopi/WfH.
+2. **Stealth Soft-Sell Funnel**: Postingan utama tidak pernah menyertakan tautan afiliasi atau bahasa jualan katalog. Tautan Amazon hanya disematkan pada balasan sendiri (*delayed self-reply*) jika relevan.
+3. **Peningkatan Ritme Harian (8 Post / Hari & 35% Afiliasi)**: Menjalankan maksimal 8 postingan per hari dengan proporsi seimbang: ~2–3 post afiliasi kontekstual dan ~5–6 post murni organik.
+4. **Media Decision Engine**: Menghindari pemuatan media bertumpuk (*multi-media dump*) yang tidak wajar. Agen merotasi aset visual secara proporsional: 45% gambar tunggal, 20% video tunggal, 35% teks murni.
+5. **Automatic Cloudinary Rehosting**: Mengunduh media Amazon secara aman melalui serverless buffer dengan User-Agent browser untuk memotong proteksi anti-hotlink HTTP 403, lalu menyimpannya di Cloudinary pribadi.
+6. **Passive Knowledge Vault & Proteksi Stok**: Penambahan produk dari Chrome Extension tersimpan sebagai memori bawah sadar. Jika produk di Amazon habis (*out-of-stock*), status produk otomatis diset **"Dijeda"** (*Paused*).
+7. **Dukungan Penuh Bahasa Indonesia**: Panel kendali web dilengkapi fitur pengubah bahasa instan (ID/EN) dengan terminologi kreator yang natural.
 
 ---
 
@@ -123,8 +129,12 @@
 ### 2.4 Database (MongoDB Atlas & In-Memory Fallback)
 | Variabel | Tipe | Deskripsi | Lokasi Penggunaan |
 |---|---|---|---|
-| `MONGODB_URI` | Connection URI | URI koneksi MongoDB Atlas (`mongodb+srv://...`). Jika dikosongkan, sistem beralih ke in-memory store. | `db/connect.ts`, `db/store.ts` |
-| `MONGODB_DB_NAME` | String | Nama database target di MongoDB (default: `threads_agent`) | `db/connect.ts` |
+| `MONGODB_URI` | Connection URI | URI koneksi MongoDB Atlas (`mongodb+srv://...`). Jika dikosongkan, sistem beralih ke in-memory store. Dilengkapi pembersih otomatis (*auto-strip quotes* dan *auto-prepend scheme*). | `db/client.ts` |
+| `MONGODB_DB_NAME` | String | Nama database target di MongoDB (default: `threads_agent`). | `db/client.ts` |
+
+> [!TIP]
+> **Fitur Auto-Detect & Auto-Swap Cerdas:**  
+> Jika pengguna di Vercel tidak sengaja menukar isian (`MONGODB_DB_NAME` diisi URL koneksi `mongodb+srv://...` dan `MONGODB_URI` diisi nama database), sistem backend secara otomatis mendeteksi dan menukar posisinya kembali agar aplikasi tidak mengalami eror *Invalid scheme*.
 
 ### 2.5 Cloudinary CDN Dual-Storage (Image & Video Rehosting)
 Sistem menggunakan akun/preset Cloudinary terpisah untuk mengoptimalkan kuota dan penanganan jenis media:
@@ -146,6 +156,8 @@ Berikut adalah ringkasan kredensial aktif pada lingkungan pengembangan & produks
 | **Server** | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` / `https://threads-agent-amazon-affiliate.vercel.app` | ✅ Aktif |
 | **Keamanan** | `CRON_SECRET` | `threads_agent_secret_cron_key_999` | ✅ Terkunci |
 | **MongoDB** | `MONGODB_URI` | Cluster Atlas (`atlas-cobalt-notebook.kagrk4b.mongodb.net`) | ✅ Terkoneksi |
+| **MongoDB** | `MONGODB_DB_NAME`| `threads_agent` | ✅ Terkonfigurasi |
+| **Profil Akun** | Akun Threads | `@averyfoundit` (Avery - Everyday Tech, Desk Setup & Coffee) | ✅ Terhubung |
 | **Meta Threads** | `THREADS_APP_ID` | `2641379366258147` | ✅ Terkonfigurasi |
 | **Meta Threads** | `THREADS_USER_ID` | `28237007615909546` | ✅ Terkonfigurasi |
 | **Meta Threads** | `DRY_RUN` | `false` | ✅ Live Posting |
@@ -326,7 +338,35 @@ Untuk mencegah kebosanan audiens akibat foto atau video yang sama digunakan beru
 
 ---
 
-## 8. SISTEM INTERNASIONALISASI (i18n) & UI MULTIBAHASA
+## 8. RITME POSTINGAN, ANGGARAN AFILIASI & STATUS VAULT
+
+Sistem menerapkan arsitektur *stealth creator* yang menjaga akun tetap otentik sekaligus memaksimalkan konversi:
+
+### 8.1 Batas Harian & Jadwal Pasar Amerika Serikat
+- **Maksimal Postingan**: **8 postingan / hari** (`MAX_DAILY_POSTS = 8`).
+- **Jendela Waktu Aktif**: **07:00 – 23:00 US Eastern Time (ET)**. Di luar jam aktif ini (waktu tidur audiens US), agen masuk mode hening (*idle*) untuk menghindari pemborosan konten.
+- **Jeda Antar Post Utama**: 45 menit hingga 2.5 jam secara acak dinamis.
+
+### 8.2 Proporsi Konten & Anggaran Komersial (Commercial Budget)
+- **Rasio Konten**:
+  - **~65% Konten Organik** (5–6 post/hari): Opini spontan, pertanyaan diskusi, refleksi setup meja, dan cerita mikro.
+  - **~35% Sebutan Afiliasi Kontekstual** (2–3 post/hari): Rekomendasi produk dari Vault yang diangkat secara alami.
+- **Anggaran Poin Komersial**: **4.0 poin / hari**
+  - Direct Link (Tautan di balasan komentar): **1.0 poin**
+  - Soft Recommendation (Rekomendasi tanpa link langsung): **0.4 poin**
+  - Mention Only (Hanya sebutan kategori/alat): **0.15 poin**
+- **Cooldown Antar Produk**: **2 Jam** (Sistem mengunci slot sebutan produk minimal 2 jam setelah produk disebut).
+- **Ambang Tekanan Komersial**: **0.75** (Jika tekanan melebihi nilai ini, agen otomatis mendinginkan konten ke mode organik murni).
+
+### 8.3 Status Produk di Vault: "Aktif" vs "Dijeda"
+- 🟢 **Aktif** (*Active*): Produk siap direkomendasikan AI agen sesuai giliran rotasi.
+- ⚪ **Dijeda** (*Paused*): Produk diistirahatkan sementara. AI agen **TIDAK AKAN** menyebutkan atau membagikan link produk ini. Status ini terjadi melalui 2 cara:
+  1. *Otomatis oleh Scraper*: Jika di Amazon produk habis (*out-of-stock*), sistem otomatis menyetel status ke **"Dijeda"**.
+  2. *Manual*: Pengguna dapat mengklik tombol badge status kapan saja untuk menjeda atau mengaktifkan kembali.
+
+---
+
+## 9. SISTEM INTERNASIONALISASI (i18n) & UI MULTIBAHASA
 
 Dashboard antarmuka kini dilengkapi dukungan multibahasa penuh:
 
@@ -343,7 +383,7 @@ Dashboard antarmuka kini dilengkapi dukungan multibahasa penuh:
 
 ---
 
-## 9. SKEMA DATABASE MONGOOSE / MONGODB
+## 10. SKEMA DATABASE MONGOOSE / MONGODB
 
 Sistem menggunakan koleksi utama berikut di MongoDB (`threads_agent`):
 
@@ -359,16 +399,16 @@ Sistem menggunakan koleksi utama berikut di MongoDB (`threads_agent`):
 
 ---
 
-## 10. PANDUAN DEPLOYMENT VERCEL & GOOGLE APPS SCRIPT SETUP
+## 11. PANDUAN DEPLOYMENT VERCEL & GOOGLE APPS SCRIPT SETUP
 
-### 10.1 Langkah Deployment di Vercel
+### 11.1 Langkah Deployment di Vercel
 1. Push branch `main` ke repositori GitHub.
 2. Di dashboard Vercel, pastikan seluruh variabel pada bagian [2. INVENTARIS KREDENSIAL](#2-inventaris-kredensial--environment-variables-envlocal) telah ditambahkan ke tab **Environment Variables**.
 3. Vercel akan otomatis membangun aplikasi menggunakan preset Next.js.
 4. Endpoint Ingest siap diakses di:  
    `https://<domain-anda>.vercel.app/api/products/ingest`
 
-### 10.2 Konfigurasi Google Apps Script (Trigger 5-Menit)
+### 11.2 Konfigurasi Google Apps Script (Trigger 5-Menit)
 Gunakan kode di `gas/trigger.gs`:
 ```javascript
 const CRON_URL = "https://<domain-anda>.vercel.app/api/cron/wake?secret=threads_agent_secret_cron_key_999";
