@@ -33,6 +33,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
       bufferCommands: false,
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
+      dbName: process.env.MONGODB_DB_NAME || 'threads_agent',
     };
 
     cached!.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
