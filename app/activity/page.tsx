@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Activity, Play, CheckCircle2, XCircle, Edit3, MessageSquare, RotateCw, Sparkles, Filter } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function ActivitySimulationPage() {
+  const { strings, language } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -110,10 +112,10 @@ export default function ActivitySimulationPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
           <Activity className="w-6 h-6 text-zinc-300" />
-          Activity Feed & Simulation Studio
+          {strings.activityTitle}
         </h1>
         <p className="text-xs text-zinc-400 mt-1 max-w-xl">
-          Inspect every decision the agent makes with full transparency into its reasoning ("WHY?"), review drafts, or test reply simulations.
+          {strings.activitySubtitle}
         </p>
       </div>
 
@@ -121,15 +123,19 @@ export default function ActivitySimulationPage() {
       <div className="glass-card rounded-xl p-5 border border-zinc-800/80 space-y-4">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300">
           <Sparkles className="w-4 h-4 text-purple-400" />
-          Reply Simulation Sandbox
+          {strings.simulatorTitle}
         </div>
         <p className="text-xs text-zinc-400">
-          Paste any real comment or thread to test how the agent's persona and memory engine would respond:
+          {language === 'id'
+            ? 'Tempel komentar atau utas nyata untuk melihat bagaimana kepribadian dan memori agen merespons:'
+            : "Paste any real comment or thread to test how the agent's persona and memory engine would respond:"}
         </p>
 
         <form onSubmit={handleRunSimulation} className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="text-[11px] text-zinc-400 block mb-1">Author Username</label>
+            <label className="text-[11px] text-zinc-400 block mb-1">
+              {language === 'id' ? 'Username Penulis' : 'Author Username'}
+            </label>
             <input
               type="text"
               value={simAuthor}
@@ -140,13 +146,15 @@ export default function ActivitySimulationPage() {
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-[11px] text-zinc-400 block mb-1">Thread / Comment Text *</label>
+            <label className="text-[11px] text-zinc-400 block mb-1">
+              {language === 'id' ? 'Teks Utas / Komentar *' : 'Thread / Comment Text *'}
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={simText}
                 onChange={(e) => setSimText(e.target.value)}
-                placeholder="e.g. What is one gadget under $40 that actually fixed your neck or wrist pain?"
+                placeholder={strings.simTextPlaceholder}
                 className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600"
                 required
               />
@@ -156,7 +164,7 @@ export default function ActivitySimulationPage() {
                 className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs transition disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap shadow"
               >
                 {simulating ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                {simulating ? 'Simulating...' : 'Simulate'}
+                {simulating ? strings.simulating : strings.btnSimulate}
               </button>
             </div>
           </div>
@@ -166,7 +174,7 @@ export default function ActivitySimulationPage() {
           <div className="bg-purple-950/20 border border-purple-500/30 rounded-lg p-3.5 text-xs space-y-2">
             <div className="flex items-center justify-between text-purple-400 font-semibold">
               <span className="flex items-center gap-1.5">
-                Response Generated ({simResult.replyClass})
+                {language === 'id' ? 'Respons Dihasilkan' : 'Response Generated'} ({simResult.replyClass})
               </span>
               <span className="text-[11px] font-mono">Score: {simResult.qualityScore || 90}/100</span>
             </div>
@@ -181,22 +189,27 @@ export default function ActivitySimulationPage() {
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-zinc-400" />
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
-              Agent Action Logs ({posts.length})
+              {language === 'id' ? `Log Aksi Agen (${posts.length})` : `Agent Action Logs (${posts.length})`}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5 text-xs">
-            {['ALL', 'DRAFT', 'PUBLISHED', 'REJECTED'].map((st) => (
+            {[
+              { key: 'ALL', label: strings.filterAll },
+              { key: 'DRAFT', label: strings.filterDraft },
+              { key: 'PUBLISHED', label: strings.filterPublished },
+              { key: 'REJECTED', label: strings.filterRejected },
+            ].map((tab) => (
               <button
-                key={st}
-                onClick={() => setFilterStatus(st)}
+                key={tab.key}
+                onClick={() => setFilterStatus(tab.key)}
                 className={`px-3 py-1 rounded-lg transition font-medium ${
-                  filterStatus === st
+                  filterStatus === tab.key
                     ? 'bg-white text-black font-semibold'
                     : 'bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700'
                 }`}
               >
-                {st}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -205,11 +218,11 @@ export default function ActivitySimulationPage() {
         {loading ? (
           <div className="py-20 text-center text-xs text-zinc-500 flex flex-col items-center gap-2">
             <RotateCw className="w-5 h-5 animate-spin" />
-            Loading action history...
+            {language === 'id' ? 'Memuat riwayat aksi...' : 'Loading action history...'}
           </div>
         ) : posts.length === 0 ? (
           <div className="glass-card rounded-xl p-12 text-center text-zinc-500 text-xs">
-            No posts found matching filter "{filterStatus}".
+            {strings.emptyActivity}
           </div>
         ) : (
           <div className="space-y-3">
@@ -264,13 +277,13 @@ export default function ActivitySimulationPage() {
                         onClick={() => setEditingPostId(null)}
                         className="px-3 py-1 rounded bg-zinc-800 text-zinc-300 hover:text-white"
                       >
-                        Cancel
+                        {strings.cancel}
                       </button>
                       <button
                         onClick={() => handleApprove(post._id, editText)}
                         className="px-3 py-1 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-500"
                       >
-                        Save & Publish
+                        {strings.btnSaveEdit}
                       </button>
                     </div>
                   </div>
@@ -297,21 +310,21 @@ export default function ActivitySimulationPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      Edit
+                      {strings.btnEdit}
                     </button>
                     <button
                       onClick={() => handleReject(post._id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-red-950/40 text-red-400 transition"
                     >
                       <XCircle className="w-3.5 h-3.5" />
-                      Reject
+                      {strings.btnReject}
                     </button>
                     <button
                       onClick={() => handleApprove(post._id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black font-semibold hover:bg-zinc-200 transition shadow"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Approve & Publish
+                      {language === 'id' ? 'Setujui & Terbitkan' : 'Approve & Publish'}
                     </button>
                   </div>
                 )}

@@ -16,8 +16,10 @@ import {
   Sparkles,
   Info,
 } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function ProductsPage() {
+  const { strings, language } = useLanguage();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [bulkText, setBulkText] = useState('');
@@ -199,11 +201,10 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <Package className="w-6 h-6 text-zinc-300" />
-            Product Knowledge & AI Vision Vault
+            {strings.vaultTitle}
           </h1>
           <p className="text-xs text-zinc-400 mt-1 max-w-xl leading-relaxed">
-            Autonomous creator background knowledge. Products are learned via multi-provider AI Vision (Groq, xKiro,
-            Mistral) and woven organically into stealth Threads discussions with rich media.
+            {strings.vaultSubtitle}
           </p>
         </div>
 
@@ -212,7 +213,7 @@ export default function ProductsPage() {
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition shadow"
         >
           <Plus className="w-3.5 h-3.5" />
-          Add Single Product
+          {strings.addProduct}
         </button>
       </div>
 
@@ -280,15 +281,15 @@ export default function ProductsPage() {
       {showSingleModal && (
         <div className="glass-card rounded-xl p-5 border border-zinc-700/80 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Add Product to Knowledge Vault</h2>
+            <h2 className="text-sm font-semibold text-white">{strings.modalAddTitle}</h2>
             <button onClick={() => setShowSingleModal(false)} className="text-xs text-zinc-400 hover:text-white">
-              Cancel
+              {strings.cancel}
             </button>
           </div>
 
           <form onSubmit={handleSingleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Product Name *</label>
+              <label className="text-xs text-zinc-400 block mb-1">{strings.labelProductName} *</label>
               <input
                 type="text"
                 value={singleName}
@@ -300,7 +301,7 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Amazon Affiliate Link *</label>
+              <label className="text-xs text-zinc-400 block mb-1">{strings.labelAffiliateUrl} *</label>
               <input
                 type="text"
                 value={singleUrl}
@@ -312,7 +313,7 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Niche / Category</label>
+              <label className="text-xs text-zinc-400 block mb-1">{strings.labelCategory}</label>
               <input
                 type="text"
                 value={singleCategory}
@@ -323,21 +324,21 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Notes / Why You Like It</label>
+              <label className="text-xs text-zinc-400 block mb-1">{strings.labelNotes}</label>
               <input
                 type="text"
                 value={singleNotes}
                 onChange={(e) => setSingleNotes(e.target.value)}
-                placeholder="e.g. compact size, charges both phone and laptop simultaneously"
+                placeholder={strings.labelNotesPlaceholder}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
               />
             </div>
 
             <div>
               <label className="text-xs text-zinc-400 block mb-1">
-                Image URLs (Pisahkan koma atau 1 per baris)
+                {strings.labelImages}
                 <span className="text-[10px] text-sky-400 block font-normal">
-                  ☁️ Otomatis ditransfer ke Cloudinary: dwgfox722
+                  ☁️ {language === 'id' ? 'Otomatis ditransfer ke Cloudinary' : 'Auto-transferred to Cloudinary'}: dwgfox722
                 </span>
               </label>
               <textarea
@@ -351,9 +352,9 @@ export default function ProductsPage() {
 
             <div>
               <label className="text-xs text-zinc-400 block mb-1">
-                Video URLs (Pisahkan koma atau 1 per baris)
+                {strings.labelVideos}
                 <span className="text-[10px] text-purple-400 block font-normal">
-                  ☁️ Otomatis ditransfer ke Cloudinary: drkbqpxqf
+                  ☁️ {language === 'id' ? 'Otomatis ditransfer ke Cloudinary' : 'Auto-transferred to Cloudinary'}: drkbqpxqf
                 </span>
               </label>
               <textarea
@@ -372,7 +373,7 @@ export default function ProductsPage() {
                 className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition disabled:opacity-50 flex items-center gap-2"
               >
                 {submittingSingle && <RotateCw className="w-3.5 h-3.5 animate-spin" />}
-                {submittingSingle ? 'Transferring to Cloudinary & Saving...' : 'Save & Re-host to Cloudinary'}
+                {submittingSingle ? strings.savingRehosting : strings.saveToVault}
               </button>
             </div>
           </form>
@@ -384,10 +385,10 @@ export default function ProductsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Upload className="w-4 h-4 text-blue-400" />
-            <h2 className="text-sm font-semibold text-zinc-200">Fast Batch Importer (Paste & Go)</h2>
+            <h2 className="text-sm font-semibold text-zinc-200">{strings.modalBulkTitle}</h2>
           </div>
           <span className="text-[11px] text-zinc-400 font-mono">
-            Format: Name | Link | Category | Notes | ImageUrl | VideoUrl
+            {language === 'id' ? 'Format: Nama | Link | Kategori | Catatan | ImgUrl | VidUrl' : 'Format: Name | Link | Category | Notes | ImageUrl | VideoUrl'}
           </span>
         </div>
 
@@ -402,7 +403,9 @@ export default function ProductsPage() {
 
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-zinc-400">
-              Paste multiple lines separated by the pipe character (|). Image & Video URLs are optional.
+              {language === 'id'
+                ? 'Tempel beberapa baris yang dipisahkan karakter garis tegak (|). URL Media bersifat opsional.'
+                : 'Paste multiple lines separated by the pipe character (|). Image & Video URLs are optional.'}
             </p>
             <button
               type="submit"
@@ -410,7 +413,7 @@ export default function ProductsPage() {
               className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-medium text-xs transition border border-zinc-700 disabled:opacity-50 flex items-center gap-2"
             >
               {submittingBulk ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-              {submittingBulk ? 'Importing...' : 'Import Products'}
+              {submittingBulk ? strings.importing : strings.importProducts}
             </button>
           </div>
         </form>
@@ -420,35 +423,35 @@ export default function ProductsPage() {
       <div className="glass-card rounded-xl border border-zinc-800/80 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/50">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Vault Inventory ({products.length})
+            {language === 'id' ? `Inventaris Vault (${products.length})` : `Vault Inventory (${products.length})`}
           </h3>
           <button onClick={fetchProducts} className="text-xs text-zinc-400 hover:text-white transition">
-            Refresh
+            {language === 'id' ? 'Segarkan' : 'Refresh'}
           </button>
         </div>
 
         {loading ? (
           <div className="py-16 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
             <RotateCw className="w-5 h-5 animate-spin" />
-            Loading products...
+            {language === 'id' ? 'Memuat produk...' : 'Loading products...'}
           </div>
         ) : products.length === 0 ? (
           <div className="py-16 text-center text-zinc-500 text-xs">
-            No products in vault. Use the Fast Batch Importer above to add your first items.
+            {strings.noProductsFound}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-zinc-800/60 text-zinc-400 bg-zinc-900/30">
                 <tr>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium">Product Name</th>
-                  <th className="px-5 py-3 font-medium">Media</th>
-                  <th className="px-5 py-3 font-medium">AI Vision Insights</th>
-                  <th className="px-5 py-3 font-medium">Niche</th>
-                  <th className="px-5 py-3 font-medium">Mentioned</th>
-                  <th className="px-5 py-3 font-medium">Affiliate Link</th>
-                  <th className="px-5 py-3 font-medium text-right">Actions</th>
+                  <th className="px-5 py-3 font-medium">{strings.colStatus}</th>
+                  <th className="px-5 py-3 font-medium">{strings.colProduct}</th>
+                  <th className="px-5 py-3 font-medium">{strings.colMedia}</th>
+                  <th className="px-5 py-3 font-medium">{language === 'id' ? 'Wawasan AI Vision' : 'AI Vision Insights'}</th>
+                  <th className="px-5 py-3 font-medium">{strings.colCategory}</th>
+                  <th className="px-5 py-3 font-medium">{language === 'id' ? 'Disebut' : 'Mentioned'}</th>
+                  <th className="px-5 py-3 font-medium">{language === 'id' ? 'Link Afiliasi' : 'Affiliate Link'}</th>
+                  <th className="px-5 py-3 font-medium text-right">{strings.colActions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/40">
@@ -468,7 +471,7 @@ export default function ProductsPage() {
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                           }`}
                         >
-                          {p.active ? 'Active' : 'Paused'}
+                          {p.active ? (language === 'id' ? 'Aktif' : 'Active') : (language === 'id' ? 'Jeda' : 'Paused')}
                         </button>
                       </td>
 
@@ -496,7 +499,7 @@ export default function ProductsPage() {
                           const isCloudinary = [...imgList, ...vidList].some((u) => u.includes('cloudinary.com'));
 
                           if (imgList.length === 0 && vidList.length === 0) {
-                            return <span className="text-zinc-600 text-[11px]">Text Only</span>;
+                            return <span className="text-zinc-600 text-[11px]">{strings.textOnly}</span>;
                           }
 
                           return (
@@ -511,7 +514,7 @@ export default function ProductsPage() {
                                     title={`${imgList.length} Image(s) in Vault`}
                                   >
                                     <ImageIcon className="w-3 h-3" />
-                                    <span>{imgList.length} Foto</span>
+                                    <span>{imgList.length} {language === 'id' ? 'Foto' : 'Photos'}</span>
                                   </a>
                                 )}
                                 {vidList.length > 0 && (
@@ -523,13 +526,13 @@ export default function ProductsPage() {
                                     title={`${vidList.length} Video(s) in Vault`}
                                   >
                                     <VideoIcon className="w-3 h-3" />
-                                    <span>{vidList.length} Vid</span>
+                                    <span>{vidList.length} {language === 'id' ? 'Vid' : 'Videos'}</span>
                                   </a>
                                 )}
                               </div>
                               {isCloudinary && (
                                 <span className="inline-block text-[10px] text-emerald-400/90 font-mono">
-                                  ☁️ Cloudinary Hosted
+                                  ☁️ {strings.cloudinaryHosted}
                                 </span>
                               )}
                             </div>
@@ -565,10 +568,10 @@ export default function ProductsPage() {
                             ) : (
                               <Eye className="w-3 h-3 text-emerald-400" />
                             )}
-                            {isAnalyzing ? 'Analyzing...' : 'Analyze Visuals'}
+                            {isAnalyzing ? (language === 'id' ? 'Menganalisis...' : 'Analyzing...') : (language === 'id' ? 'Analisis Visual' : 'Analyze Visuals')}
                           </button>
                         ) : (
-                          <span className="text-zinc-600 text-[11px]">No Image URL</span>
+                          <span className="text-zinc-600 text-[11px]">{language === 'id' ? 'Tanpa URL Gambar' : 'No Image URL'}</span>
                         )}
                       </td>
 
@@ -592,7 +595,7 @@ export default function ProductsPage() {
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-blue-400 hover:underline"
                         >
-                          Visit Link <ExternalLink className="w-3 h-3" />
+                          {language === 'id' ? 'Kunjungi Link' : 'Visit Link'} <ExternalLink className="w-3 h-3" />
                         </a>
                       </td>
 
@@ -601,7 +604,7 @@ export default function ProductsPage() {
                         <button
                           onClick={() => handleDelete(p._id)}
                           className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition"
-                          title="Delete from vault"
+                          title={strings.deleteProduct}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Settings, Shield, Key, RefreshCw, Check, Copy, AlertTriangle, ExternalLink } from 'lucide-react';
 import { AutonomyLevel } from '@/types';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function SettingsPage() {
+  const { strings, language } = useLanguage();
   const [autonomyLevel, setAutonomyLevel] = useState<AutonomyLevel>(1);
   const [dryRunMode, setDryRunMode] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -129,23 +131,23 @@ export default function SettingsPage() {
   const autonomyDescriptions = [
     {
       level: 0,
-      title: 'Level 0: Drafts Only (Sandbox)',
-      desc: 'All post ideas, questions, and replies are saved as Drafts. Zero automatic publishing. Perfect for testing and training.',
+      title: strings.level0Title,
+      desc: strings.level0Desc,
     },
     {
       level: 1,
-      title: 'Level 1: Assisted Creator (Recommended Start)',
-      desc: 'Original thoughts, questions, and stories publish automatically. Inbound replies to users require 1-click approval.',
+      title: strings.level1Title,
+      desc: strings.level1Desc,
     },
     {
       level: 2,
-      title: 'Level 2: Semi-Autonomous',
-      desc: 'High-confidence community replies (>85 score) and organic posts auto-publish. Product mentions require manual sign-off.',
+      title: strings.level2Title,
+      desc: strings.level2Desc,
     },
     {
       level: 3,
-      title: 'Level 3: Full Autopilot',
-      desc: 'Complete autonomous operation. Posts, conversations, and contextual product drops run automatically according to memory limits.',
+      title: strings.level3Title,
+      desc: strings.level3Desc,
     },
   ];
 
@@ -156,10 +158,10 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <Settings className="w-6 h-6 text-zinc-300" />
-            Agent & Platform Settings
+            {strings.settingsTitle}
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Configure system autonomy level, simulation safety controls, and Vercel cron endpoints.
+            {strings.settingsSubtitle}
           </p>
         </div>
 
@@ -171,10 +173,10 @@ export default function SettingsPage() {
           {savedSuccess ? (
             <>
               <Check className="w-4 h-4 text-emerald-600" />
-              Settings Saved!
+              {strings.settingsSavedSuccess}
             </>
           ) : (
-            <>{saving ? 'Saving...' : 'Save Configuration'}</>
+            <>{saving ? strings.savingSettings : strings.saveSettings}</>
           )}
         </button>
       </div>
@@ -184,24 +186,30 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300">
             <span className="w-5 h-5 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs">@</span>
-            Meta Threads Account Connection (@amzonaff)
+            {strings.threadsConnectionTitle} (@amzonaff)
           </div>
           <span className="text-[11px] text-zinc-500 font-mono">App ID: 2641379366258147</span>
         </div>
 
         <p className="text-xs text-zinc-400">
-          Akun Threads baru Anda <strong>@amzonaff</strong> dapat dihubungkan menggunakan 2 cara mudah:
+          {language === 'id'
+            ? 'Akun Threads Anda (@amzonaff) dapat dihubungkan menggunakan 2 cara mudah:'
+            : 'Your Threads account (@amzonaff) can be connected using 2 easy methods:'}
         </p>
 
         {/* Option 1: One-Click OAuth Login */}
         <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
-              <span>Metode 1: Login Langsung (One-Click OAuth)</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Paling Cepat</span>
+              <span>{language === 'id' ? 'Metode 1: Login Langsung (One-Click OAuth)' : 'Method 1: Direct Login (One-Click OAuth)'}</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                {language === 'id' ? 'Paling Cepat' : 'Fastest'}
+              </span>
             </h3>
             <p className="text-[11px] text-zinc-400 mt-0.5">
-              Login ke akun <strong>@amzonaff</strong> dan berikan izin publikasi. Token 60 hari akan tersimpan otomatis.
+              {language === 'id'
+                ? 'Login ke akun @amzonaff dan berikan izin publikasi. Token 60 hari akan tersimpan otomatis.'
+                : 'Log in to @amzonaff and grant publishing permissions. 60-day token will be securely saved.'}
             </p>
           </div>
           <a
@@ -209,20 +217,24 @@ export default function SettingsPage() {
             className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition shrink-0 flex items-center justify-center gap-2 shadow"
           >
             <span className="font-bold text-sm">@</span>
-            Connect @amzonaff via Threads
+            {strings.connectThreadsOAuth}
           </a>
         </div>
 
         {/* Option 2: Manual Token Generator */}
         <div className="pt-2">
-          <h3 className="text-xs font-semibold text-zinc-300 mb-2">Metode 2: Input Manual (Meta User Token Generator)</h3>
+          <h3 className="text-xs font-semibold text-zinc-300 mb-2">
+            {language === 'id' ? 'Metode 2: Input Manual (Meta User Token Generator)' : 'Method 2: Manual Input (Meta User Token Generator)'}
+          </h3>
           <p className="text-[11px] text-zinc-400 mb-3">
-            Atau jika Anda sudah klik <em>"Generate Token"</em> di Meta Developer Dashboard untuk <strong>@amzonaff</strong>, tempelkan ID dan Tokennya di bawah ini:
+            {language === 'id'
+              ? 'Atau jika Anda sudah klik "Generate Token" di Meta Developer Dashboard untuk @amzonaff, tempelkan ID dan Tokennya di bawah ini:'
+              : 'Or if you have generated a token in Meta Developer Dashboard for @amzonaff, paste the ID and Token below:'}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Threads User ID (atau Username)</label>
+              <label className="text-xs text-zinc-400 block mb-1">Threads User ID / Username</label>
               <input
                 type="text"
                 value={threadsUserId}
@@ -238,7 +250,7 @@ export default function SettingsPage() {
                 type="password"
                 value={threadsAccessToken}
                 onChange={(e) => setThreadsAccessToken(e.target.value)}
-                placeholder="THQW... (Token akses yang di-generate Meta)"
+                placeholder="THQW... (Token akses Meta)"
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500 font-mono"
               />
             </div>
@@ -246,7 +258,9 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between pt-3 border-t border-zinc-800/60 mt-3">
             <span className="text-[11px] text-zinc-500">
-              Sistem akan menguji izin posting dan membaca profil akun.
+              {language === 'id'
+                ? 'Sistem akan menguji izin posting dan membaca profil akun.'
+                : 'System will test posting permissions and profile reading.'}
             </span>
             <button
               type="button"
@@ -255,7 +269,7 @@ export default function SettingsPage() {
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white transition border border-zinc-700 disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${testingConnection ? 'animate-spin' : ''}`} />
-              {testingConnection ? 'Testing...' : 'Test & Verify Token'}
+              {testingConnection ? strings.testingConnection : strings.testThreadsApi}
             </button>
           </div>
         </div>
@@ -277,7 +291,7 @@ export default function SettingsPage() {
       <div className="glass-card rounded-xl p-6 border border-zinc-800/80 space-y-4">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300">
           <Shield className="w-4 h-4 text-blue-400" />
-          Autonomy Level (Human-in-the-Loop Policy)
+          {strings.autonomyModeTitle}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -311,9 +325,9 @@ export default function SettingsPage() {
       <div className="glass-card rounded-xl p-6 border border-zinc-800/80 space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-white">Dry-Run Simulation Mode</h2>
+            <h2 className="text-sm font-semibold text-white">{strings.dryRunTitle}</h2>
             <p className="text-xs text-zinc-400">
-              When enabled, all Threads API publishing calls are safely simulated with mock IDs. No real posts will be published to your live Threads account.
+              {strings.dryRunDesc}
             </p>
           </div>
           <button
@@ -333,7 +347,11 @@ export default function SettingsPage() {
         {dryRunMode && (
           <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg text-xs text-amber-300 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>Simulation is currently ACTIVE. Generated posts will appear in the Activity Feed without sending real API calls.</span>
+            <span>
+              {language === 'id'
+                ? 'Simulasi saat ini AKTIF. Postingan yang dibuat akan muncul di Aktivitas tanpa memanggil Threads API asli.'
+                : 'Simulation is currently ACTIVE. Generated posts will appear in the Activity Feed without sending real API calls.'}
+            </span>
           </div>
         )}
       </div>
@@ -342,10 +360,12 @@ export default function SettingsPage() {
       <div className="glass-card rounded-xl p-6 border border-zinc-800/80 space-y-4">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300">
           <Key className="w-4 h-4 text-purple-400" />
-          Vercel Cron & Wake-Up Signal Endpoint
+          {language === 'id' ? 'Endpoint Sinyal Cron & Bangunkan Agen' : 'Vercel Cron & Wake-Up Signal Endpoint'}
         </div>
         <p className="text-xs text-zinc-400">
-          To wake the agent on a recurring schedule without paying for an always-on server, point Vercel Cron or an external ping service (e.g. Google Apps Script / cron-job.org) to this URL every 10–15 minutes:
+          {language === 'id'
+            ? 'Untuk membangunkan agen secara berkala tanpa bayar server standby, arahkan Vercel Cron atau Google Apps Script ke URL ini tiap 10–15 menit:'
+            : 'To wake the agent on a recurring schedule without paying for an always-on server, point Vercel Cron or an external ping service (e.g. Google Apps Script / cron-job.org) to this URL every 10–15 minutes:'}
         </p>
 
         <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 p-2.5 rounded-lg text-xs font-mono text-zinc-300">
@@ -355,7 +375,7 @@ export default function SettingsPage() {
             className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded transition flex items-center gap-1.5 shrink-0"
           >
             {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            {copiedUrl ? 'Copied' : 'Copy'}
+            {copiedUrl ? (language === 'id' ? 'Tersalin' : 'Copied') : (language === 'id' ? 'Salin' : 'Copy')}
           </button>
         </div>
       </div>
@@ -364,9 +384,13 @@ export default function SettingsPage() {
       <div className="glass-card rounded-xl p-6 border border-zinc-800/80 space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-white">Threads Long-Lived Token Status</h2>
+            <h2 className="text-sm font-semibold text-white">
+              {language === 'id' ? 'Status Token Jangka Panjang Threads' : 'Threads Long-Lived Token Status'}
+            </h2>
             <p className="text-xs text-zinc-400">
-              Threads user access tokens are valid for 60 days. The system refreshes them automatically, or you can trigger a refresh manually.
+              {language === 'id'
+                ? 'Token akses pengguna Threads berlaku selama 60 hari. Sistem memperbaruinya secara otomatis, atau Anda dapat memperbarui secara manual.'
+                : 'Threads user access tokens are valid for 60 days. The system refreshes them automatically, or you can trigger a refresh manually.'}
             </p>
           </div>
           <button
@@ -375,7 +399,7 @@ export default function SettingsPage() {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white transition border border-zinc-700 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshingToken ? 'animate-spin' : ''}`} />
-            {refreshingToken ? 'Refreshing...' : 'Refresh Token'}
+            {refreshingToken ? (language === 'id' ? 'Memperbarui...' : 'Refreshing...') : (language === 'id' ? 'Perbarui Token' : 'Refresh Token')}
           </button>
         </div>
 

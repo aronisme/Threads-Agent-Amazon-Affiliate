@@ -14,8 +14,10 @@ import {
   ExternalLink,
   Compass,
 } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function DashboardPage() {
+  const { strings, language } = useLanguage();
   const [state, setState] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [productsCount, setProductsCount] = useState<number>(0);
@@ -112,15 +114,15 @@ export default function DashboardPage() {
   const getAutonomyBadge = (lvl: number) => {
     switch (lvl) {
       case 0:
-        return { label: 'Level 0: Drafts Only', color: 'text-zinc-400 border-zinc-700 bg-zinc-800/40' };
+        return { label: strings.level0Title, color: 'text-zinc-400 border-zinc-700 bg-zinc-800/40' };
       case 1:
-        return { label: 'Level 1: Assisted (Posts Auto)', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' };
+        return { label: strings.level1Title, color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' };
       case 2:
-        return { label: 'Level 2: Semi-Autonomous', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' };
+        return { label: strings.level2Title, color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' };
       case 3:
-        return { label: 'Level 3: Fully Autonomous', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' };
+        return { label: strings.level3Title, color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' };
       default:
-        return { label: `Level ${lvl}`, color: 'text-zinc-400' };
+        return { label: `${strings.autonomyLevel} ${lvl}`, color: 'text-zinc-400' };
     }
   };
 
@@ -128,7 +130,7 @@ export default function DashboardPage() {
     return (
       <div className="py-24 text-center">
         <RotateCw className="w-8 h-8 animate-spin mx-auto text-zinc-500 mb-3" />
-        <p className="text-sm text-zinc-400">Loading Agent Brain State...</p>
+        <p className="text-sm text-zinc-400">{language === 'id' ? 'Memuat Status Otak Agen...' : 'Loading Agent Brain State...'}</p>
       </div>
     );
   }
@@ -142,21 +144,23 @@ export default function DashboardPage() {
         <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">Agent Active</span>
+            <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
+              {language === 'id' ? 'Agen Aktif' : 'Agent Active'}
+            </span>
             <span className={`px-2.5 py-0.5 rounded-full text-xs border font-medium ${autonomy.color}`}>
               {autonomy.label}
             </span>
             {state?.dryRunMode && (
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                DRY RUN SIMULATION
+                {strings.statusDryRun}
               </span>
             )}
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-            {state?.persona?.identityName || 'Alex'} • Threads Autonomous Creator
+            {state?.persona?.identityName || 'Alex'} • {strings.brandName}
           </h1>
           <p className="text-zinc-400 text-sm max-w-2xl">
-            {state?.persona?.tagline || 'Observing, conversing, and sharing authentic perspectives on Threads.'}
+            {state?.persona?.tagline || (language === 'id' ? 'Mengamati, mengobrol, dan membagikan pandangan otentik di Threads.' : 'Observing, conversing, and sharing authentic perspectives on Threads.')}
           </p>
         </div>
 
@@ -168,7 +172,7 @@ export default function DashboardPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition disabled:opacity-50 shadow-md"
           >
             <Zap className={`w-3.5 h-3.5 ${actionLoading === 'cycle' ? 'animate-spin' : ''}`} />
-            {actionLoading === 'cycle' ? 'Running Cycle...' : 'Run Cycle Now'}
+            {actionLoading === 'cycle' ? strings.runningCycle : strings.runCycle}
           </button>
           <button
             onClick={handleCompose}
@@ -176,7 +180,7 @@ export default function DashboardPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 text-white font-medium text-xs hover:bg-zinc-700 transition border border-zinc-700 disabled:opacity-50"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            {actionLoading === 'compose' ? 'Drafting...' : 'Compose Post'}
+            {actionLoading === 'compose' ? strings.composingPost : strings.composePost}
           </button>
           <button
             onClick={handleDiscover}
@@ -184,7 +188,7 @@ export default function DashboardPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 text-white font-medium text-xs hover:bg-zinc-700 transition border border-zinc-700 disabled:opacity-50"
           >
             <Compass className="w-3.5 h-3.5 text-purple-400" />
-            {actionLoading === 'discover' ? 'Exploring...' : 'Discover Topics'}
+            {actionLoading === 'discover' ? strings.discoveringTopics : strings.discoverTopics}
           </button>
         </div>
       </div>
@@ -193,7 +197,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
         <div className="glass-card rounded-xl p-4 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-xs font-medium">Current Mood</span>
+            <span className="text-xs font-medium">{strings.agentMood}</span>
             <Sparkles className="w-4 h-4 text-zinc-500" />
           </div>
           <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold border ${getMoodBadge(state?.currentMood)}`}>
@@ -203,7 +207,7 @@ export default function DashboardPage() {
 
         <div className="glass-card rounded-xl p-4 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-xs font-medium">Commercial Pressure</span>
+            <span className="text-xs font-medium">{language === 'id' ? 'Tekanan Komersial' : 'Commercial Pressure'}</span>
             <span className="text-[10px] font-mono text-zinc-500">
               {Math.round((state?.commercialPressureScore || 0) * 100)}%
             </span>
@@ -223,42 +227,46 @@ export default function DashboardPage() {
             </div>
             <p className="text-[11px] text-zinc-400">
               {(state?.commercialPressureScore || 0) < 0.4
-                ? '🟢 Organic & Relaxed'
+                ? (language === 'id' ? '🟢 Organik & Santai' : '🟢 Organic & Relaxed')
                 : (state?.commercialPressureScore || 0) < 0.7
-                ? '🟡 Moderate Commercial'
-                : '🔴 Saturated (Throttled)'}
+                ? (language === 'id' ? '🟡 Komersial Sedang' : '🟡 Moderate Commercial')
+                : (language === 'id' ? '🔴 Jenuh (Dibatasi)' : '🔴 Saturated (Throttled)')}
             </p>
           </div>
         </div>
 
         <div className="glass-card rounded-xl p-4 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-xs font-medium">Daily Commercial Budget</span>
+            <span className="text-xs font-medium">{strings.commercialBudget}</span>
             <Package className="w-4 h-4 text-zinc-500" />
           </div>
           <p className="text-xl font-bold text-white">
             {state?.commercialBudget?.currentSpent?.toFixed(2) || '0.00'}{' '}
-            <span className="text-xs text-zinc-500 font-normal">/ {state?.commercialBudget?.dailyLimit || '2.5'} pts</span>
+            <span className="text-xs text-zinc-500 font-normal">/ {state?.commercialBudget?.dailyLimit || '2.5'} {language === 'id' ? 'poin' : 'pts'}</span>
           </p>
-          <p className="text-[10px] text-zinc-400 mt-0.5">Direct: 1.0 | Soft: 0.4 | Mention: 0.15</p>
+          <p className="text-[10px] text-zinc-400 mt-0.5">
+            {language === 'id' ? 'Langsung: 1.0 | Halus: 0.4 | Sebutan: 0.15' : 'Direct: 1.0 | Soft: 0.4 | Mention: 0.15'}
+          </p>
         </div>
 
         <div className="glass-card rounded-xl p-4 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-xs font-medium">Today's Activity</span>
+            <span className="text-xs font-medium">{strings.dailyMetrics}</span>
             <Layers className="w-4 h-4 text-zinc-500" />
           </div>
           <p className="text-xl font-bold text-white">
             {state?.dailyActions?.postsCount || 0}{' '}
-            <span className="text-xs text-zinc-500 font-normal">posts</span> • {state?.dailyActions?.repliesCount || 0}{' '}
-            <span className="text-xs text-zinc-500 font-normal">replies</span>
+            <span className="text-xs text-zinc-500 font-normal">{language === 'id' ? 'post' : 'posts'}</span> • {state?.dailyActions?.repliesCount || 0}{' '}
+            <span className="text-xs text-zinc-500 font-normal">{language === 'id' ? 'balasan' : 'replies'}</span>
           </p>
-          <p className="text-[10px] text-zinc-400 mt-0.5">{state?.dailyActions?.productMentionsCount || 0} product touches</p>
+          <p className="text-[10px] text-zinc-400 mt-0.5">
+            {state?.dailyActions?.productMentionsCount || 0} {language === 'id' ? 'sentuhan produk' : 'product touches'}
+          </p>
         </div>
 
         <div className="glass-card rounded-xl p-4 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
-            <span className="text-xs font-medium">Last 5-Min Cycle</span>
+            <span className="text-xs font-medium">{language === 'id' ? 'Siklus 5-Menit Terakhir' : 'Last 5-Min Cycle'}</span>
             <Zap className="w-4 h-4 text-zinc-500" />
           </div>
           <span
@@ -273,7 +281,7 @@ export default function DashboardPage() {
             {state?.lastAction?.action || 'IDLE'}
           </span>
           <p className="text-[10px] text-zinc-400 truncate mt-1.5" title={state?.lastAction?.summary || 'No recent activity'}>
-            {state?.lastAction?.summary || 'Awaiting next GAS ping...'}
+            {state?.lastAction?.summary || (language === 'id' ? 'Menunggu ping GAS berikutnya...' : 'Awaiting next GAS ping...')}
           </p>
         </div>
       </div>
@@ -282,7 +290,7 @@ export default function DashboardPage() {
       {lastActionOutput && (
         <div className="glass-card rounded-xl p-4 border border-blue-500/30 bg-blue-950/20 text-xs text-zinc-200">
           <div className="flex items-center justify-between font-semibold text-blue-400 mb-1">
-            <span>Action Execution Result</span>
+            <span>{strings.lastActionLog}</span>
             <button onClick={() => setLastActionOutput(null)} className="text-zinc-400 hover:text-white">
               ✕
             </button>
@@ -298,16 +306,16 @@ export default function DashboardPage() {
         {/* Left Column: Recent Posts on Threads */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-wide text-zinc-300 uppercase">Recent Threads & Activity</h2>
+            <h2 className="text-sm font-semibold tracking-wide text-zinc-300 uppercase">{strings.recentThreads}</h2>
             <Link href="/activity" className="text-xs text-zinc-400 hover:text-white transition">
-              View All Activity →
+              {language === 'id' ? 'Lihat Semua Aktivitas →' : 'View All Activity →'}
             </Link>
           </div>
 
           <div className="space-y-3">
             {posts.length === 0 ? (
               <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm">
-                No threads generated yet. Click "Run Cycle Now" or "Compose Post" to kick off the agent.
+                {strings.noPostsYet}
               </div>
             ) : (
               posts.map((post) => (
@@ -363,7 +371,7 @@ export default function DashboardPage() {
           <div className="glass-card rounded-xl p-5 space-y-4">
             <h3 className="text-xs font-semibold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
               <Compass className="w-3.5 h-3.5 text-blue-400" />
-              Active Niche Topics
+              {language === 'id' ? 'Topik Utama Aktif' : 'Active Niche Topics'}
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {(state?.persona?.nicheTopics || []).map((topic: string) => (
@@ -378,9 +386,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="glass-card rounded-xl p-5 space-y-3">
-            <h3 className="text-xs font-semibold tracking-wide text-zinc-300 uppercase">Anti-Repetition Memory</h3>
+            <h3 className="text-xs font-semibold tracking-wide text-zinc-300 uppercase">
+              {language === 'id' ? 'Memori Anti-Repetisi' : 'Anti-Repetition Memory'}
+            </h3>
             <p className="text-xs text-zinc-400">
-              The agent avoids repeating these recent discussion hooks:
+              {language === 'id'
+                ? 'Agen menghindari mengulang topik/sudut pandang diskusi berikut:'
+                : 'The agent avoids repeating these recent discussion hooks:'}
             </p>
             <div className="space-y-1.5">
               {(state?.recentTopics || []).slice(0, 6).map((t: string, idx: number) => (
@@ -393,17 +405,23 @@ export default function DashboardPage() {
           </div>
 
           <div className="glass-card rounded-xl p-5 space-y-3">
-            <h3 className="text-xs font-semibold tracking-wide text-zinc-300 uppercase">Product Knowledge</h3>
+            <h3 className="text-xs font-semibold tracking-wide text-zinc-300 uppercase">
+              {strings.navProducts}
+            </h3>
             <p className="text-xs text-zinc-400">
               {productsCount > 0
-                ? `${productsCount} products available in the Vault as natural background knowledge.`
-                : 'Vault is empty. Add your Amazon products to provide context.'}
+                ? (language === 'id'
+                    ? `${productsCount} produk tersimpan di Vault sebagai wawasan pasif agen.`
+                    : `${productsCount} products available in the Vault as natural background knowledge.`)
+                : (language === 'id'
+                    ? 'Vault masih kosong. Tambahkan produk Amazon untuk memperkaya konteks agen.'
+                    : 'Vault is empty. Add your Amazon products to provide context.')}
             </p>
             <Link
               href="/products"
               className="inline-block w-full text-center px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white transition border border-zinc-700"
             >
-              Open Product Vault →
+              {language === 'id' ? 'Buka Vault Produk →' : 'Open Product Vault →'}
             </Link>
           </div>
         </div>

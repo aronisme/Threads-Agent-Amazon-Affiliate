@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Sparkles, Sliders, Save, Check, Eye, RotateCw } from 'lucide-react';
 import { IPersonaConfig } from '@/types';
 import { buildSystemPrompt } from '@/lib/prompts/personaPrompt';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function PersonaStudioPage() {
+  const { strings, language } = useLanguage();
   const [persona, setPersona] = useState<IPersonaConfig>({
     identityName: 'Alex',
     tagline: 'Curious tech enthusiast & minimalist desk builder',
@@ -103,10 +105,10 @@ export default function PersonaStudioPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <Sliders className="w-6 h-6 text-zinc-300" />
-            Persona Studio
+            {strings.personaTitle}
           </h1>
           <p className="text-xs text-zinc-400 mt-1 max-w-xl">
-            Configure the identity, voice nuances, humor, and conversational philosophy of your autonomous Threads creator.
+            {strings.personaSubtitle}
           </p>
         </div>
 
@@ -118,12 +120,12 @@ export default function PersonaStudioPage() {
           {savedSuccess ? (
             <>
               <Check className="w-4 h-4 text-emerald-600" />
-              Saved Successfully!
+              {strings.personaSavedSuccess}
             </>
           ) : (
             <>
               <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Persona Changes'}
+              {saving ? strings.savingPersona : strings.savePersona}
             </>
           )}
         </button>
@@ -134,11 +136,13 @@ export default function PersonaStudioPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Identity Section */}
           <div className="glass-card rounded-xl p-5 border border-zinc-800/80 space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Identity & Vibe</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              {language === 'id' ? 'Identitas & Karakter' : 'Identity & Vibe'}
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Creator Name</label>
+                <label className="text-xs text-zinc-400 block mb-1">{strings.agentIdentityName}</label>
                 <input
                   type="text"
                   value={persona.identityName}
@@ -148,20 +152,20 @@ export default function PersonaStudioPage() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Post Length Style</label>
+                <label className="text-xs text-zinc-400 block mb-1">{strings.postLength}</label>
                 <select
                   value={persona.postLength}
                   onChange={(e: any) => setPersona({ ...persona, postLength: e.target.value })}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600"
                 >
-                  <option value="short">Short & Punchy (&lt;150 chars)</option>
-                  <option value="medium">Medium Discussion (150-300 chars)</option>
-                  <option value="varied">Varied (Natural mix)</option>
+                  <option value="short">{strings.lengthShort}</option>
+                  <option value="medium">{strings.lengthMedium}</option>
+                  <option value="varied">{strings.lengthVaried}</option>
                 </select>
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-xs text-zinc-400 block mb-1">Bio / Tagline Context</label>
+                <label className="text-xs text-zinc-400 block mb-1">{strings.agentTagline}</label>
                 <input
                   type="text"
                   value={persona.tagline}
@@ -174,13 +178,15 @@ export default function PersonaStudioPage() {
 
           {/* Nuance Sliders */}
           <div className="glass-card rounded-xl p-5 border border-zinc-800/80 space-y-5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Linguistic & Behavioral Sliders</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              {strings.personalitySliders}
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 text-xs">
               {/* Humor Level */}
               <div className="space-y-1.5">
                 <div className="flex justify-between font-medium">
-                  <span className="text-zinc-300">Humor Level</span>
+                  <span className="text-zinc-300">{strings.sliderHumor}</span>
                   <span className="font-mono text-zinc-400">{persona.humorLevel}/10</span>
                 </div>
                 <input
@@ -192,14 +198,14 @@ export default function PersonaStudioPage() {
                   className="w-full accent-white bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
                 />
                 <span className="text-[11px] text-zinc-500 block">
-                  {persona.humorLevel > 7 ? 'Witty observational jokes' : 'Factual and composed'}
+                  {persona.humorLevel > 7 ? (language === 'id' ? 'Lelucon cerdas observasional' : 'Witty observational jokes') : (language === 'id' ? 'Faktual dan lugas' : 'Factual and composed')}
                 </span>
               </div>
 
               {/* Sarcasm Level */}
               <div className="space-y-1.5">
                 <div className="flex justify-between font-medium">
-                  <span className="text-zinc-300">Sarcasm Level</span>
+                  <span className="text-zinc-300">{strings.sliderSarcasm}</span>
                   <span className="font-mono text-zinc-400">{persona.sarcasmLevel}/10</span>
                 </div>
                 <input
@@ -211,14 +217,14 @@ export default function PersonaStudioPage() {
                   className="w-full accent-white bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
                 />
                 <span className="text-[11px] text-zinc-500 block">
-                  {persona.sarcasmLevel > 5 ? 'Playful dry sarcasm' : 'Gentle and sincere'}
+                  {persona.sarcasmLevel > 5 ? (language === 'id' ? 'Sarkasme kering santai' : 'Playful dry sarcasm') : (language === 'id' ? 'Tulus dan ramah' : 'Gentle and sincere')}
                 </span>
               </div>
 
               {/* Warmth */}
               <div className="space-y-1.5">
                 <div className="flex justify-between font-medium">
-                  <span className="text-zinc-300">Community Warmth</span>
+                  <span className="text-zinc-300">{strings.sliderWarmth}</span>
                   <span className="font-mono text-zinc-400">{persona.warmth}/10</span>
                 </div>
                 <input
@@ -230,14 +236,14 @@ export default function PersonaStudioPage() {
                   className="w-full accent-white bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
                 />
                 <span className="text-[11px] text-zinc-500 block">
-                  {persona.warmth > 6 ? 'Supportive, friendly friend vibe' : 'Direct, aloof'}
+                  {persona.warmth > 6 ? (language === 'id' ? 'Mendukung, vibe teman akrab' : 'Supportive, friendly friend vibe') : (language === 'id' ? 'Langsung, tenang' : 'Direct, aloof')}
                 </span>
               </div>
 
               {/* Slang Frequency */}
               <div className="space-y-1.5">
                 <div className="flex justify-between font-medium">
-                  <span className="text-zinc-300">US Slang & Lowercase</span>
+                  <span className="text-zinc-300">{strings.sliderSlang}</span>
                   <span className="font-mono text-zinc-400">{persona.slangFrequency}/10</span>
                 </div>
                 <input
@@ -249,14 +255,14 @@ export default function PersonaStudioPage() {
                   className="w-full accent-white bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
                 />
                 <span className="text-[11px] text-zinc-500 block">
-                  {persona.slangFrequency > 5 ? 'Casual ("ngl", "tbh", "lowkey")' : 'Standard formal English'}
+                  {persona.slangFrequency > 5 ? 'Kasual ("ngl", "tbh", "lowkey")' : 'Formal baku standar'}
                 </span>
               </div>
 
               {/* Emoji Frequency */}
               <div className="space-y-1.5">
                 <div className="flex justify-between font-medium">
-                  <span className="text-zinc-300">Emoji Density</span>
+                  <span className="text-zinc-300">{strings.sliderEmoji}</span>
                   <span className="font-mono text-zinc-400">{persona.emojiFrequency}/5</span>
                 </div>
                 <input
@@ -268,14 +274,14 @@ export default function PersonaStudioPage() {
                   className="w-full accent-white bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
                 />
                 <span className="text-[11px] text-zinc-500 block">
-                  {persona.emojiFrequency === 0 ? 'No emojis at all' : `Max ${persona.emojiFrequency} per post`}
+                  {persona.emojiFrequency === 0 ? (language === 'id' ? 'Tanpa emoji sama sekali' : 'No emojis at all') : `Maks ${persona.emojiFrequency} per post`}
                 </span>
               </div>
 
               {/* Commercial Salesiness */}
               <div className="space-y-1.5">
                 <div className="flex justify-between font-medium">
-                  <span className="text-zinc-300">Commercial Intensity</span>
+                  <span className="text-zinc-300">{strings.sliderSalesiness}</span>
                   <span className="font-mono text-zinc-400">{persona.salesiness}/5</span>
                 </div>
                 <input
@@ -287,7 +293,7 @@ export default function PersonaStudioPage() {
                   className="w-full accent-white bg-zinc-800 h-1.5 rounded-lg cursor-pointer"
                 />
                 <span className="text-[11px] text-zinc-500 block">
-                  {persona.salesiness <= 2 ? 'Subtle product knowledge (Recommended)' : 'Frequent mentions'}
+                  {persona.salesiness <= 2 ? (language === 'id' ? 'Penyebutan produk halus (Disarankan)' : 'Subtle product knowledge (Recommended)') : (language === 'id' ? 'Penyebutan sering' : 'Frequent mentions')}
                 </span>
               </div>
             </div>
@@ -295,11 +301,13 @@ export default function PersonaStudioPage() {
 
           {/* Topics Configuration */}
           <div className="glass-card rounded-xl p-5 border border-zinc-800/80 space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Topical Boundary</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              {language === 'id' ? 'Batasan Topik Pembahasan' : 'Topical Boundary'}
+            </h2>
 
             {/* Allowed Niche Topics */}
             <div className="space-y-2">
-              <label className="text-xs text-zinc-400 block">Niche Topics (Conversations to engage in)</label>
+              <label className="text-xs text-zinc-400 block">{strings.nicheTopicsTitle}</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {persona.nicheTopics.map((topic) => (
                   <span
@@ -319,7 +327,7 @@ export default function PersonaStudioPage() {
                   value={newNicheInput}
                   onChange={(e) => setNewNicheInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addNicheTopic())}
-                  placeholder="Add a topic (e.g. coffee brewing, mechanical keyboards)"
+                  placeholder={strings.addTopicPlaceholder}
                   className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-zinc-600"
                 />
                 <button
@@ -327,14 +335,14 @@ export default function PersonaStudioPage() {
                   onClick={addNicheTopic}
                   className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white transition border border-zinc-700"
                 >
-                  Add
+                  {language === 'id' ? 'Tambah' : 'Add'}
                 </button>
               </div>
             </div>
 
             {/* Topics to Avoid */}
             <div className="space-y-2 pt-2 border-t border-zinc-800/60">
-              <label className="text-xs text-zinc-400 block">Topics to Avoid (Strict Guardrail)</label>
+              <label className="text-xs text-zinc-400 block">{strings.topicsToAvoidTitle}</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {persona.topicsToAvoid.map((topic) => (
                   <span
@@ -354,7 +362,7 @@ export default function PersonaStudioPage() {
                   value={newAvoidInput}
                   onChange={(e) => setNewAvoidInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAvoidTopic())}
-                  placeholder="Add topic to avoid (e.g. political arguments, drama)"
+                  placeholder={language === 'id' ? 'Tambah topik tabu (misal: debat politik, drama)' : 'Add topic to avoid (e.g. political arguments, drama)'}
                   className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-zinc-600"
                 />
                 <button
@@ -362,7 +370,7 @@ export default function PersonaStudioPage() {
                   onClick={addAvoidTopic}
                   className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white transition border border-zinc-700"
                 >
-                  Block
+                  {language === 'id' ? 'Blokir' : 'Block'}
                 </button>
               </div>
             </div>
@@ -374,10 +382,12 @@ export default function PersonaStudioPage() {
           <div className="glass-card rounded-xl p-5 border border-zinc-800/80 sticky top-24 space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300">
               <Eye className="w-4 h-4 text-blue-400" />
-              Live System Prompt Preview
+              {strings.promptPreview}
             </div>
             <p className="text-[11px] text-zinc-400">
-              This exact instruction set is delivered to the Groq/LLM engine whenever generating posts or replies:
+              {language === 'id'
+                ? 'Kumpulan instruksi ini dikirimkan langsung ke mesin AI/LLM setiap kali memproduksi postingan atau balasan:'
+                : 'This exact instruction set is delivered to the Groq/LLM engine whenever generating posts or replies:'}
             </p>
             <pre className="text-[11px] font-mono text-zinc-300 bg-black/60 p-3 rounded-lg border border-zinc-800/80 overflow-y-auto max-h-[520px] whitespace-pre-wrap leading-relaxed">
               {livePromptPreview}
