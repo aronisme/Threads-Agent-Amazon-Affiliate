@@ -260,7 +260,7 @@ export default function DashboardPage() {
           </div>
           <p className="text-xl font-bold text-white">
             {state?.commercialBudget?.currentSpent?.toFixed(2) || '0.00'}{' '}
-            <span className="text-xs text-zinc-500 font-normal">/ {state?.commercialBudget?.dailyLimit || '2.5'} {language === 'id' ? 'poin' : 'pts'}</span>
+            <span className="text-xs text-zinc-500 font-normal">/ {state?.commercialBudget?.dailyLimit || '4.0'} {language === 'id' ? 'poin' : 'pts'}</span>
           </p>
           <p className="text-[10px] text-zinc-400 mt-0.5">
             {language === 'id' ? 'Langsung: 1.0 | Halus: 0.4 | Sebutan: 0.15' : 'Direct: 1.0 | Soft: 0.4 | Mention: 0.15'}

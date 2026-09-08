@@ -75,7 +75,7 @@ const AgentStateSchema = new Schema<AgentStateDocument>(
     dryRunMode: { type: Boolean, default: true },
     commercialPressureScore: { type: Number, default: 0.0, min: 0.0, max: 1.0 },
     commercialBudget: {
-      dailyLimit: { type: Number, default: 2.5 },
+      dailyLimit: { type: Number, default: 4.0 },
       currentSpent: { type: Number, default: 0.0 },
       lastResetDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
     },

@@ -168,7 +168,7 @@ export class AffiliateEngine {
 
     // Check Commercial Pressure & Daily Budget
     const pressureScore = state.commercialPressureScore || 0;
-    const dailyLimit = state.commercialBudget?.dailyLimit || 2.5;
+    const dailyLimit = state.commercialBudget?.dailyLimit || 4.0;
     const currentSpent = state.commercialBudget?.currentSpent || 0;
     const budgetRemaining = dailyLimit - currentSpent;
 

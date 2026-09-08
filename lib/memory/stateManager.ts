@@ -53,7 +53,7 @@ let inMemoryState: any = {
   dryRunMode: true,
   commercialPressureScore: 0.0,
   commercialBudget: {
-    dailyLimit: 2.5,
+    dailyLimit: 4.0,
     currentSpent: 0.0,
     lastResetDate: new Date().toISOString().split('T')[0],
   },
@@ -99,7 +99,7 @@ export class StateManager {
 
     if (!state.commercialBudget) {
       state.commercialBudget = {
-        dailyLimit: 2.5,
+        dailyLimit: 4.0,
         currentSpent: 0.0,
         lastResetDate: todayStr,
       };
@@ -202,7 +202,7 @@ export class StateManager {
 
     if (!state.commercialBudget) {
       state.commercialBudget = {
-        dailyLimit: 2.5,
+        dailyLimit: 4.0,
         currentSpent: 0.0,
         lastResetDate: new Date().toISOString().split('T')[0],
       };
@@ -214,9 +214,9 @@ export class StateManager {
     const ratio = state.commercialBudget.currentSpent / state.commercialBudget.dailyLimit;
     state.commercialPressureScore = +Math.min(1.0, Math.max(0.0, ratio)).toFixed(2);
 
-    // Trigger product mention cooldown if direct link or soft recommendation
+    // Trigger product mention cooldown if direct link or soft recommendation (2h cooldown)
     if (mode === 'DIRECT_LINK' || mode === 'SOFT_RECOMMENDATION') {
-      state.cooldowns.productMentionUntil = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3h cooldown
+      state.cooldowns.productMentionUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h cooldown
     }
 
     if (typeof state.save === 'function') {

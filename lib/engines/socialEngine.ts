@@ -45,8 +45,8 @@ export class SocialEngine {
       };
     }
 
-    // 2. Check daily posting limits (Keep account human: max 6 posts per day)
-    const MAX_DAILY_POSTS = 6;
+    // 2. Check daily posting limits (Max 8 posts per day)
+    const MAX_DAILY_POSTS = 8;
     if (state.dailyActions.postsCount >= MAX_DAILY_POSTS) {
       return {
         action: 'DO_NOTHING',
@@ -82,18 +82,19 @@ export class SocialEngine {
     const canMentionProduct =
       !state.cooldowns.productMentionUntil || new Date(state.cooldowns.productMentionUntil) <= now;
 
-    // Check commercial pressure (if pressure > 0.6, strictly avoid contextual product)
+    // Check commercial pressure (if pressure > 0.75, avoid contextual product to prevent saturation)
     const pressure = state.commercialPressureScore || 0;
-    const allowProductCandidate = canMentionProduct && pressure < 0.6;
+    const allowProductCandidate = canMentionProduct && pressure < 0.75;
 
     const roll = Math.random();
     let postType: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT';
 
-    if (allowProductCandidate && roll < 0.2) {
+    // Increased affiliate frequency: ~35% probability when budget & cooldown allow (~2-3 product posts/day)
+    if (allowProductCandidate && roll < 0.35) {
       postType = 'CONTEXTUAL_PRODUCT';
-    } else if (roll < 0.55) {
+    } else if (roll < 0.60) {
       postType = 'ORIGINAL_THOUGHT';
-    } else if (roll < 0.8) {
+    } else if (roll < 0.80) {
       postType = 'QUESTION';
     } else {
       postType = 'STORY';
