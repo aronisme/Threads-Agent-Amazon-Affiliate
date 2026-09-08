@@ -28,8 +28,9 @@ export default function ProductsPage() {
   const [singleUrl, setSingleUrl] = useState('');
   const [singleCategory, setSingleCategory] = useState('');
   const [singleNotes, setSingleNotes] = useState('');
-  const [singleImageUrl, setSingleImageUrl] = useState('');
-  const [singleVideoUrl, setSingleVideoUrl] = useState('');
+  const [singleImages, setSingleImages] = useState('');
+  const [singleVideos, setSingleVideos] = useState('');
+  const [submittingSingle, setSubmittingSingle] = useState(false);
   const [showSingleModal, setShowSingleModal] = useState(false);
 
   // Vision inspection state
@@ -70,7 +71,7 @@ export default function ProductsPage() {
       if (data.success) {
         setBulkText('');
         await fetchProducts();
-        alert(`Successfully imported ${data.count} products into Vault!`);
+        alert(`Successfully imported ${data.count} products into Vault and transferred media to Cloudinary!`);
       } else {
         alert('Import failed: ' + data.error);
       }
@@ -89,6 +90,7 @@ export default function ProductsPage() {
     }
 
     try {
+      setSubmittingSingle(true);
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,8 +99,8 @@ export default function ProductsPage() {
           affiliateUrl: singleUrl,
           category: singleCategory || 'general',
           notes: singleNotes,
-          imageUrl: singleImageUrl.trim() || undefined,
-          videoUrl: singleVideoUrl.trim() || undefined,
+          images: singleImages.trim() || undefined,
+          videos: singleVideos.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -107,8 +109,8 @@ export default function ProductsPage() {
         setSingleUrl('');
         setSingleCategory('');
         setSingleNotes('');
-        setSingleImageUrl('');
-        setSingleVideoUrl('');
+        setSingleImages('');
+        setSingleVideos('');
         setShowSingleModal(false);
         await fetchProducts();
       } else {
@@ -116,6 +118,8 @@ export default function ProductsPage() {
       }
     } catch (err: any) {
       alert('Failed: ' + err.message);
+    } finally {
+      setSubmittingSingle(false);
     }
   };
 
@@ -330,33 +334,45 @@ export default function ProductsPage() {
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Image URL (Optional for Photo Posts)</label>
-              <input
-                type="text"
-                value={singleImageUrl}
-                onChange={(e) => setSingleImageUrl(e.target.value)}
-                placeholder="e.g. https://m.media-amazon.com/images/I/..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
+              <label className="text-xs text-zinc-400 block mb-1">
+                Image URLs (Pisahkan koma atau 1 per baris)
+                <span className="text-[10px] text-sky-400 block font-normal">
+                  ☁️ Otomatis ditransfer ke Cloudinary: dwgfox722
+                </span>
+              </label>
+              <textarea
+                rows={2}
+                value={singleImages}
+                onChange={(e) => setSingleImages(e.target.value)}
+                placeholder="https://m.media-amazon.com/images/I/image1.jpg&#10;https://m.media-amazon.com/images/I/image2.jpg"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-zinc-500"
               />
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Video URL (Optional for Video Reels)</label>
-              <input
-                type="text"
-                value={singleVideoUrl}
-                onChange={(e) => setSingleVideoUrl(e.target.value)}
-                placeholder="e.g. https://res.cloudinary.com/.../video.mp4"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-500"
+              <label className="text-xs text-zinc-400 block mb-1">
+                Video URLs (Pisahkan koma atau 1 per baris)
+                <span className="text-[10px] text-purple-400 block font-normal">
+                  ☁️ Otomatis ditransfer ke Cloudinary: drkbqpxqf
+                </span>
+              </label>
+              <textarea
+                rows={2}
+                value={singleVideos}
+                onChange={(e) => setSingleVideos(e.target.value)}
+                placeholder="https://example.com/video1.mp4&#10;https://example.com/video2.mp4"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-zinc-500"
               />
             </div>
 
             <div className="md:col-span-2 flex justify-end">
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition"
+                disabled={submittingSingle}
+                className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition disabled:opacity-50 flex items-center gap-2"
               >
-                Save to Vault
+                {submittingSingle && <RotateCw className="w-3.5 h-3.5 animate-spin" />}
+                {submittingSingle ? 'Transferring to Cloudinary & Saving...' : 'Save & Re-host to Cloudinary'}
               </button>
             </div>
           </form>
@@ -462,35 +478,63 @@ export default function ProductsPage() {
                         {p.notes && <div className="text-[11px] text-zinc-500 truncate max-w-xs">{p.notes}</div>}
                       </td>
 
-                      {/* Media Presence */}
+                      {/* Media Presence & Cloudinary Storage */}
                       <td className="px-5 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          {p.imageUrl ? (
-                            <a
-                              href={p.imageUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition"
-                              title="View Image"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
-                            </a>
-                          ) : null}
-                          {p.videoUrl ? (
-                            <a
-                              href={p.videoUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition"
-                              title="View Video"
-                            >
-                              <VideoIcon className="w-3.5 h-3.5 text-purple-400" />
-                            </a>
-                          ) : null}
-                          {!p.imageUrl && !p.videoUrl && (
-                            <span className="text-zinc-600 text-[11px]">Text Only</span>
-                          )}
-                        </div>
+                        {(() => {
+                          const imgList: string[] = Array.from(
+                            new Set([
+                              ...(Array.isArray(p.images) ? p.images : []),
+                              ...(p.imageUrl ? [p.imageUrl] : []),
+                            ].filter(Boolean))
+                          );
+                          const vidList: string[] = Array.from(
+                            new Set([
+                              ...(Array.isArray(p.videos) ? p.videos : []),
+                              ...(p.videoUrl ? [p.videoUrl] : []),
+                            ].filter(Boolean))
+                          );
+                          const isCloudinary = [...imgList, ...vidList].some((u) => u.includes('cloudinary.com'));
+
+                          if (imgList.length === 0 && vidList.length === 0) {
+                            return <span className="text-zinc-600 text-[11px]">Text Only</span>;
+                          }
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                {imgList.length > 0 && (
+                                  <a
+                                    href={imgList[0]}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[11px] hover:bg-sky-500/20 transition"
+                                    title={`${imgList.length} Image(s) in Vault`}
+                                  >
+                                    <ImageIcon className="w-3 h-3" />
+                                    <span>{imgList.length} Foto</span>
+                                  </a>
+                                )}
+                                {vidList.length > 0 && (
+                                  <a
+                                    href={vidList[0]}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[11px] hover:bg-purple-500/20 transition"
+                                    title={`${vidList.length} Video(s) in Vault`}
+                                  >
+                                    <VideoIcon className="w-3 h-3" />
+                                    <span>{vidList.length} Vid</span>
+                                  </a>
+                                )}
+                              </div>
+                              {isCloudinary && (
+                                <span className="inline-block text-[10px] text-emerald-400/90 font-mono">
+                                  ☁️ Cloudinary Hosted
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* AI Vision Insights */}

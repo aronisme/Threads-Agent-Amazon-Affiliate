@@ -13,6 +13,14 @@ const ProductSchema = new Schema<ProductDocument>(
     notes: { type: String, default: '', trim: true },
     imageUrl: { type: String, default: null, trim: true },
     videoUrl: { type: String, default: null, trim: true },
+    images: { type: [String], default: [] },
+    videos: { type: [String], default: [] },
+    lastMediaUsedUrl: { type: String, default: null },
+    lastMediaTypeUsed: {
+      type: String,
+      enum: ['NONE', 'IMAGE', 'VIDEO'],
+      default: 'NONE',
+    },
     mediaType: {
       type: String,
       enum: ['NONE', 'IMAGE', 'VIDEO'],

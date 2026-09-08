@@ -49,6 +49,10 @@ export interface IProduct {
   notes: string;
   imageUrl?: string;
   videoUrl?: string;
+  images?: string[];
+  videos?: string[];
+  lastMediaUsedUrl?: string;
+  lastMediaTypeUsed?: 'NONE' | 'IMAGE' | 'VIDEO';
   mediaType?: 'NONE' | 'IMAGE' | 'VIDEO';
   visualContext?: IVisualContext;
   useCases?: string[];

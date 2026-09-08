@@ -15,6 +15,7 @@ import socialEngine from '@/lib/engines/socialEngine';
 import affiliateEngine from '@/lib/engines/affiliateEngine';
 import { enforceDisclosure } from '@/lib/compliance/disclosure';
 import visionRotator from '@/lib/ai/visionRotator';
+import mediaDecisionEngine from '@/lib/engines/mediaDecisionEngine';
 import { PostType, ReplyClass, AffiliateMode, SocialAction } from '@/types';
 
 export class WorkerRunner {
@@ -104,11 +105,15 @@ export class WorkerRunner {
     let attachedVideoUrl: string | undefined = undefined;
 
     if (targetProduct && postType === 'CONTEXTUAL_PRODUCT') {
-      if (targetProduct.imageUrl && (!targetProduct.visualContext || !targetProduct.visualContext.aestheticStyle)) {
+      const primaryImage =
+        (Array.isArray(targetProduct.images) && targetProduct.images.length > 0 ? targetProduct.images[0] : null) ||
+        targetProduct.imageUrl;
+
+      if (primaryImage && (!targetProduct.visualContext || !targetProduct.visualContext.aestheticStyle)) {
         try {
           console.info(`👁️ Learning product visuals for "${targetProduct.name}" across Groq/xKiro/Mistral Vision APIs...`);
           const visionData = await visionRotator.analyzeProductImage({
-            imageUrl: targetProduct.imageUrl,
+            imageUrl: primaryImage,
             productName: targetProduct.name,
             category: targetProduct.category,
             notes: targetProduct.notes,
@@ -124,17 +129,15 @@ export class WorkerRunner {
         }
       }
 
-      // Decide whether this post will be a Media Post (Image/Video) or Text-Only
-      const mediaRoll = Math.random();
-      if (targetProduct.videoUrl && mediaRoll < 0.25) {
-        mediaType = 'VIDEO';
-        attachedVideoUrl = targetProduct.videoUrl;
-      } else if (targetProduct.imageUrl && mediaRoll < 0.70) {
-        mediaType = 'IMAGE';
-        attachedImageUrl = targetProduct.imageUrl;
-      } else {
-        mediaType = 'TEXT';
+      // 2.2 Media Decision Engine: Select single asset from pool or text-only (anti-fatigue rotation)
+      const decision = mediaDecisionEngine.decideMedia(targetProduct, postType);
+      mediaType = decision.selectedFormat;
+      if (mediaType === 'IMAGE') {
+        attachedImageUrl = decision.mediaUrl;
+      } else if (mediaType === 'VIDEO') {
+        attachedVideoUrl = decision.mediaUrl;
       }
+      console.info(`🎬 [MediaDecision] Format: ${mediaType} | Asset: ${decision.mediaUrl || 'None (Text)'} | ${decision.reason}`);
     }
 
     // 3. Select topic fallback
@@ -245,6 +248,10 @@ export class WorkerRunner {
       if (typeof targetProduct.save === 'function') {
         targetProduct.timesMentioned += 1;
         targetProduct.lastMentionedAt = new Date();
+        if (attachedImageUrl || attachedVideoUrl) {
+          targetProduct.lastMediaUsedUrl = attachedImageUrl || attachedVideoUrl;
+          targetProduct.lastMediaTypeUsed = mediaType;
+        }
         if (postType === 'SELF_REPLY') {
           targetProduct.timesLinked = (targetProduct.timesLinked || 0) + 1;
           targetProduct.lastLinkedAt = new Date();

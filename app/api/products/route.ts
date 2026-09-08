@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/db/client';
 import Product from '@/db/models/Product';
+import cloudinaryUploader from '@/lib/utils/cloudinaryUploader';
 
 export const dynamic = 'force-dynamic';
+
+// Helper to parse comma/newline/space separated URLs into array
+function parseUrlList(input: any): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input.map((item) => String(item).trim()).filter((u) => u.startsWith('http'));
+  }
+  if (typeof input === 'string') {
+    return input
+      .split(/[\n,;]+/)
+      .map((u) => u.trim())
+      .filter((u) => u.startsWith('http'));
+  }
+  return [];
+}
 
 // In-memory fallback product storage for standalone/local testing
 let inMemoryProducts: any[] = [
@@ -12,6 +28,10 @@ let inMemoryProducts: any[] = [
     affiliateUrl: 'https://amzn.to/3example1',
     category: 'travel tech',
     notes: 'compact 3-port wall charger for MacBook & iPhone',
+    images: ['https://res.cloudinary.com/dwgfox722/image/upload/v1788897514/nwexeu1y65ftmjvhrku9.jpg'],
+    imageUrl: 'https://res.cloudinary.com/dwgfox722/image/upload/v1788897514/nwexeu1y65ftmjvhrku9.jpg',
+    videos: [],
+    mediaType: 'IMAGE',
     active: true,
     timesMentioned: 2,
     createdAt: new Date(),
@@ -22,6 +42,9 @@ let inMemoryProducts: any[] = [
     affiliateUrl: 'https://amzn.to/3example2',
     category: 'desk setup',
     notes: 'teardrop memory foam design for lower back relief',
+    images: [],
+    videos: [],
+    mediaType: 'NONE',
     active: true,
     timesMentioned: 1,
     createdAt: new Date(),
@@ -47,7 +70,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Support 1: Bulk text import ("Name | Link | Category | Notes" per line)
+    // Support 1: Bulk text import ("Name | Link | Category | Notes | Images | Videos" per line)
     if (body.bulkText && typeof body.bulkText === 'string') {
       const lines = body.bulkText.split('\n').map((l: string) => l.trim()).filter(Boolean);
       const inserted: any[] = [];
@@ -55,8 +78,18 @@ export async function POST(req: NextRequest) {
       for (const line of lines) {
         const parts = line.split('|').map((p: string) => p.trim());
         if (parts.length >= 2) {
-          const [name, affiliateUrl, category, notes, imageUrl, videoUrl] = parts;
-          const mediaType = videoUrl ? 'VIDEO' : imageUrl ? 'IMAGE' : 'NONE';
+          const [name, affiliateUrl, category, notes, rawImages, rawVideos] = parts;
+
+          const imageCandidates = parseUrlList(rawImages);
+          const videoCandidates = parseUrlList(rawVideos);
+
+          // Automatically transfer external URLs into Cloudinary
+          const rehostedImages = await cloudinaryUploader.rehostBatch(imageCandidates, 'image');
+          const rehostedVideos = await cloudinaryUploader.rehostBatch(videoCandidates, 'video');
+
+          const primaryImage = rehostedImages[0] || null;
+          const primaryVideo = rehostedVideos[0] || null;
+          const mediaType = rehostedVideos.length > 0 ? 'VIDEO' : rehostedImages.length > 0 ? 'IMAGE' : 'NONE';
 
           if (!conn) {
             const mockProd = {
@@ -65,8 +98,10 @@ export async function POST(req: NextRequest) {
               affiliateUrl,
               category: category || 'general',
               notes: notes || '',
-              imageUrl: imageUrl || null,
-              videoUrl: videoUrl || null,
+              images: rehostedImages,
+              imageUrl: primaryImage,
+              videos: rehostedVideos,
+              videoUrl: primaryVideo,
               mediaType,
               active: true,
               timesMentioned: 0,
@@ -80,8 +115,10 @@ export async function POST(req: NextRequest) {
               affiliateUrl,
               category: category || 'general',
               notes: notes || '',
-              imageUrl: imageUrl || null,
-              videoUrl: videoUrl || null,
+              images: rehostedImages,
+              imageUrl: primaryImage,
+              videos: rehostedVideos,
+              videoUrl: primaryVideo,
               mediaType,
               active: true,
             });
@@ -93,9 +130,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, count: inserted.length, products: inserted });
     }
 
-    // Support 3: Single product
+    // Support 2: Single product
     if (body.name && body.affiliateUrl) {
-      const mediaType = body.videoUrl ? 'VIDEO' : body.imageUrl ? 'IMAGE' : 'NONE';
+      const rawImages = [
+        ...parseUrlList(body.images),
+        ...parseUrlList(body.imageUrl),
+      ];
+      const rawVideos = [
+        ...parseUrlList(body.videos),
+        ...parseUrlList(body.videoUrl),
+      ];
+
+      // Automatically rehost external media to Cloudinary
+      const rehostedImages = await cloudinaryUploader.rehostBatch(rawImages, 'image');
+      const rehostedVideos = await cloudinaryUploader.rehostBatch(rawVideos, 'video');
+
+      const primaryImage = rehostedImages[0] || null;
+      const primaryVideo = rehostedVideos[0] || null;
+      const mediaType = rehostedVideos.length > 0 ? 'VIDEO' : rehostedImages.length > 0 ? 'IMAGE' : 'NONE';
 
       if (!conn) {
         const mockProd = {
@@ -104,8 +156,10 @@ export async function POST(req: NextRequest) {
           affiliateUrl: body.affiliateUrl,
           category: body.category || 'general',
           notes: body.notes || '',
-          imageUrl: body.imageUrl || null,
-          videoUrl: body.videoUrl || null,
+          images: rehostedImages,
+          imageUrl: primaryImage,
+          videos: rehostedVideos,
+          videoUrl: primaryVideo,
           mediaType,
           active: body.active !== false,
           timesMentioned: 0,
@@ -120,8 +174,10 @@ export async function POST(req: NextRequest) {
         affiliateUrl: body.affiliateUrl,
         category: body.category || 'general',
         notes: body.notes || '',
-        imageUrl: body.imageUrl || null,
-        videoUrl: body.videoUrl || null,
+        images: rehostedImages,
+        imageUrl: primaryImage,
+        videos: rehostedVideos,
+        videoUrl: primaryVideo,
         mediaType,
         active: body.active !== false,
       });
