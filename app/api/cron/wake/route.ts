@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jobQueue from '@/lib/scheduler/queue';
 import workerRunner from '@/lib/scheduler/worker';
 import stateManager from '@/lib/memory/stateManager';
+import { getUSHour } from '@/lib/engines/socialEngine';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,11 @@ export async function GET(req: NextRequest) {
     const state = await stateManager.getState();
     const now = new Date();
 
+    const usHour = getUSHour('America/New_York');
+    const isUSAwake = usHour >= 7 && usHour < 23;
+
     const isPostAllowed =
+      isUSAwake &&
       (!state.cooldowns.nextPostAllowedAt || new Date(state.cooldowns.nextPostAllowedAt) <= now) &&
       state.dailyActions.postsCount < 6;
 
@@ -100,17 +105,23 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 4. FAST-EXIT: Nothing due, cooldown active. Return immediately (<50ms) to conserve Vercel compute
+    // 4. FAST-EXIT: Nothing due, cooldown active or US night rest. Return immediately (<50ms) to conserve Vercel compute
     const nextAllowedMinutes = state.cooldowns.nextPostAllowedAt
       ? Math.max(0, Math.ceil((new Date(state.cooldowns.nextPostAllowedAt).getTime() - now.getTime()) / 60000))
       : 0;
 
-    await stateManager.recordLastAction('DO_NOTHING', undefined, 'NONE', `Fast-exit: Cooldown active (${nextAllowedMinutes}m remaining)`);
+    const fastExitReason = !isUSAwake
+      ? `US audience sleeping (Current US Eastern: ${usHour}:00). Rest mode active (07:00 - 23:00 ET).`
+      : `Post cooldown active (${nextAllowedMinutes}m remaining). No pending jobs.`;
+
+    await stateManager.recordLastAction('DO_NOTHING', undefined, 'NONE', `Fast-exit: ${fastExitReason}`);
 
     return NextResponse.json({
       success: true,
       action: 'DO_NOTHING',
-      reason: `Post cooldown active (${nextAllowedMinutes}m remaining). No pending jobs.`,
+      reason: fastExitReason,
+      usEasternHour: usHour,
+      isUSAwake,
       nextPostAllowedInMinutes: nextAllowedMinutes,
       dailyActions: state.dailyActions,
       durationMs: Date.now() - startTime,

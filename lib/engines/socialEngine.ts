@@ -9,6 +9,24 @@ export interface SocialDecision {
   selectedPostType?: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT';
 }
 
+/**
+ * Helper to get current hour in US Eastern Time (New York / ET)
+ * Gold standard timezone for US Amazon buyers and Threads creators
+ */
+export function getUSHour(timezone: string = 'America/New_York'): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hour12: false,
+    });
+    return parseInt(formatter.format(new Date()), 10);
+  } catch {
+    // Fallback: UTC-4 (EDT) or UTC-5 (EST)
+    return (new Date().getUTCHours() - 4 + 24) % 24;
+  }
+}
+
 export class SocialEngine {
   /**
    * Decide the next social action based solely on social cadence, cooldowns, and engagement.
@@ -17,7 +35,17 @@ export class SocialEngine {
   public async decideAction(state: IAgentState): Promise<SocialDecision> {
     const now = new Date();
 
-    // 1. Check daily posting limits (Keep account human: max 6 posts per day)
+    // 1. Target Audience: US Amazon Market Active Hours Window
+    // US Eastern Time (07:00 AM - 11:30 PM). When US is sleeping (11 PM - 7 AM), DO NOT post new threads.
+    const usHour = getUSHour('America/New_York');
+    if (usHour >= 23 || usHour < 7) {
+      return {
+        action: 'DO_NOTHING',
+        reason: `US audience is sleeping (Current US Eastern time: ${usHour}:00). Active window: 07:00 - 23:00 ET.`,
+      };
+    }
+
+    // 2. Check daily posting limits (Keep account human: max 6 posts per day)
     const MAX_DAILY_POSTS = 6;
     if (state.dailyActions.postsCount >= MAX_DAILY_POSTS) {
       return {
