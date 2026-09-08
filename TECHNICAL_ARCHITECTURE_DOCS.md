@@ -193,17 +193,39 @@ Menyimpan seluruh konfigurasi dinamis, kepribadian, mood, serta counter pembatas
 ```
 
 ### 4.2 `Product.ts` (Katalog Vault Produk Afiliasi)
-Menyimpan inventaris produk Amazon yang dapat direkomendasikan agen.
+Menyimpan inventaris produk Amazon yang dapat direkomendasikan agen, diperkaya oleh scraper ekstensi Chrome dan rehoster Cloudinary.
 ```typescript
 {
   name: string,                 // Nama produk (e.g. "Anker 735 65W GaN Charger")
+  brand?: string,               // Nama brand/manufaktur (e.g. "Anker")
+  asin?: string,                // Amazon Standard Identification Number (e.g. "B07ZP697CB")
   affiliateUrl: string,         // Tautan afiliasi Amazon (amzn.to/...)
   category: string,             // Kategori (desk setup, audio, productivity)
   notes: string,                // Poin keunggulan dan pengalaman pemakaian agen
-  imageUrl?: string,            // Gambar opsional untuk media container
-  active: boolean,              // Status ketersediaan untuk dipilih agen
-  timesMentioned: number,       // Counter seberapa sering produk sudah disebut
-  lastMentionedAt: Date         // Waktu terakhir direkomendasikan
+  creatorNotes?: string,        // Catatan sudut pandang kreator dari Vision AI
+  price?: string,               // Harga produk (e.g. "$29.99")
+  listPrice?: string,           // Harga coret (e.g. "$39.99")
+  discount?: string,            // Diskon persentase (e.g. "25%")
+  rating?: string,              // Rating bintang (e.g. "4.7")
+  reviewCount?: string,         // Jumlah ulasan (e.g. "1,420")
+  bullets?: string[],           // Fitur ringkas dari listing
+  imageUrl?: string,            // URL gambar utama yang di-rehost di Cloudinary
+  videoUrl?: string,            // URL video MP4 yang di-rehost di Cloudinary
+  images?: string[],            // Kumpulan gambar Cloudinary (maks 3-4)
+  videos?: string[],            // Kumpulan video Cloudinary (maks 1)
+  lastMediaUsedUrl?: string,    // URL media terakhir untuk rotasi anti-fatigue LRU
+  lastMediaTypeUsed?: 'NONE' | 'IMAGE' | 'VIDEO',
+  visualContext?: {             // Hasil ekstraksi visual dari Vision AI
+    aestheticStyle?: string,
+    dominantColors?: string[],
+    materials?: string[],
+    keyVisualHooks?: string[]
+  },
+  active: boolean,              // Status ketersediaan (otomatis false jika out-of-stock)
+  timesMentioned: number,       // Counter seberapa sering produk disebut
+  timesLinked: number,          // Counter seberapa sering link dibagikan di self-reply
+  lastMentionedAt: Date,        // Waktu terakhir direkomendasikan
+  lastLinkedAt: Date            // Waktu terakhir link dikirim
 }
 ```
 
@@ -382,6 +404,7 @@ Semua rute backend menggunakan **Next.js 14 App Router Route Handlers**:
 | `/api/products` | `GET` | Mengambil seluruh daftar produk afiliasi dari vault | - |
 | `/api/products` | `POST` | Menambah produk baru ke vault (mendukung single add atau bulk import dengan pipa `\|`) | JSON: `{ name, affiliateUrl, category, notes }` ATAU `{ bulkText: "Name \| Link \| Category \| Notes" }` |
 | `/api/products/[id]`| `PUT/DELETE`| Mengedit atau menghapus produk dari vault | JSON update fields atau DELETE request |
+| `/api/products/ingest`| `POST/OPTIONS`| Endpoint khusus ingest dari Chrome Extension dengan auto-rehost Cloudinary & CORS preflight | Headers: `x-api-key: <CRON_SECRET>`, Body: `AmazonProductExportPayload` |
 | `/api/state` | `GET` | Mengambil konfigurasi status agen, persona saat ini, mood, statistik harian, dan status token | - |
 | `/api/state` | `PUT` | Memperbarui konfigurasi status agen, slider persona, autonomy level, atau kredensial | JSON: Parsial update dari `IAgentState` |
 | `/api/threads/test-connection` | `POST` | Menguji validitas token akses dan User ID langsung ke endpoint Meta `/me` | JSON: `{ userId?: string, accessToken?: string }` |

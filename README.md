@@ -25,6 +25,19 @@
 - **Multi-Key Groq LPU Engine**:
   - Round-robin key rotation across `GROQ_API_KEYS` with auto-failover on rate limits (HTTP 429).
   - Sub-second inference latency (< 1s).
+- **Media Decision Engine & Anti-Bot Cadence**:
+  - Distributes media posts organically: 45% single photo, 20% single short video (MP4), 35% text-only.
+  - Avoids spammy multi-image dumps. Implements Least Recently Used (LRU) asset rotation to eliminate visual fatigue.
+- **Chrome Extension Product Scraper Ingest**:
+  - Direct authenticated endpoint (`/api/products/ingest`) with full CORS preflight support.
+  - Automatically receives rich Amazon product metadata (ASIN, title, price, discount, rating, bullet points, media).
+  - Out-of-stock guardrail (`active = !isOutOfStock`).
+- **Cloudinary Automatic Media Rehosting**:
+  - Direct buffer rehosting with desktop browser User-Agent to bypass Amazon CDN anti-bot HTTP 403 blocks.
+  - Stores high-resolution images (`dwgfox722`/`lynke_app`) and videos (`drkbqpxqf`/`vidgram`) on Cloudinary.
+- **Full UI Localization (🇮🇩 ID / 🇺🇸 EN)**:
+  - Instant header language toggle switch with persistent local preference.
+  - Complete natural Indonesian creator terminology across Dashboard, Vault, Persona, Activity, and Settings.
 - **Modern Dashboard UI**:
   - Telemetry meters for Commercial Pressure, Mood, and Activity.
   - Interactive Persona configuration sliders (humor, sarcasm, warmth, slang, topics).
