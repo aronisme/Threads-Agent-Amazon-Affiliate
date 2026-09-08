@@ -1,15 +1,37 @@
 import mongoose from 'mongoose';
 
-export function getSanitizedMongoUri(): string | null {
+export function getSanitizedMongoConfig(): { uri: string | null; dbName: string } {
   let uri = (process.env.MONGODB_URI || process.env.MONGO_URL || '').trim();
-  if (!uri) return null;
+  let dbName = (process.env.MONGODB_DB_NAME || 'threads_agent').trim();
 
-  // Remove surrounding quotes if accidentally pasted in Vercel
-  if (
-    (uri.startsWith('"') && uri.endsWith('"')) ||
-    (uri.startsWith("'") && uri.endsWith("'"))
-  ) {
-    uri = uri.slice(1, -1).trim();
+  // Strip surrounding quotes
+  const cleanStr = (s: string) => {
+    let res = s.trim();
+    if (
+      (res.startsWith('"') && res.endsWith('"')) ||
+      (res.startsWith("'") && res.endsWith("'"))
+    ) {
+      res = res.slice(1, -1).trim();
+    }
+    return res;
+  };
+
+  uri = cleanStr(uri);
+  dbName = cleanStr(dbName);
+
+  // AUTO-FIX: User swapped MONGODB_URI and MONGODB_DB_NAME in Vercel!
+  // If MONGODB_DB_NAME contains the connection string (starts with mongodb:// or mongodb+srv://)
+  if (dbName.startsWith('mongodb://') || dbName.startsWith('mongodb+srv://')) {
+    console.warn(
+      '🔄 Auto-Fix: Detected connection string inside MONGODB_DB_NAME! Automatically swapping with MONGODB_URI.'
+    );
+    const realUri = dbName;
+    const realDbName =
+      !uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://') && uri.length > 0
+        ? uri
+        : 'threads_agent';
+    uri = realUri;
+    dbName = realDbName;
   }
 
   // Handle common copy-paste errors
@@ -26,10 +48,15 @@ export function getSanitizedMongoUri(): string | null {
     console.warn(
       `⚠️ Invalid MONGODB_URI scheme: "${uri.substring(0, 20)}...". Expected connection string to start with "mongodb://" or "mongodb+srv://". Falling back to in-memory mode.`
     );
-    return null;
+    return { uri: null, dbName: 'threads_agent' };
   }
 
-  return uri;
+  return { uri, dbName };
+}
+
+// Keep backwards-compatible helper
+export function getSanitizedMongoUri(): string | null {
+  return getSanitizedMongoConfig().uri;
 }
 
 interface MongooseCache {
@@ -49,7 +76,7 @@ if (!cached) {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose | null> {
-  const mongoUri = getSanitizedMongoUri();
+  const { uri: mongoUri, dbName } = getSanitizedMongoConfig();
   if (!mongoUri) {
     console.warn('⚠️ MONGODB_URI is not defined or invalid. Database operations will be mocked or skipped.');
     return null;
@@ -64,11 +91,11 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
       bufferCommands: false,
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
-      dbName: process.env.MONGODB_DB_NAME || 'threads_agent',
+      dbName: dbName || 'threads_agent',
     };
 
     cached!.promise = mongoose.connect(mongoUri, opts).then((m) => {
-      console.log('✅ Connected to MongoDB Atlas');
+      console.log(`✅ Connected to MongoDB Atlas (Database: ${opts.dbName})`);
       return m;
     });
   }
