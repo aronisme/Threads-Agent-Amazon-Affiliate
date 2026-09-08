@@ -6,6 +6,22 @@ import { AmazonProductExportPayload } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, x-api-key, Authorization',
+};
+
+/**
+ * Handle CORS Preflight from Chrome Extensions
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 /**
  * Ingestion API for Chrome Extension Scraper
  * Securely receives full Amazon product export payloads, filters and re-hosts
@@ -27,7 +43,7 @@ export async function POST(req: NextRequest) {
           error:
             'Unauthorized. Provide a valid API key in x-api-key header matching your CRON_SECRET.',
         },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -40,7 +56,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: 'Invalid payload. "asin" and "title" are mandatory.',
         },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -128,15 +144,18 @@ export async function POST(req: NextRequest) {
     // 7. Upsert into MongoDB Database
     const conn = await connectToDatabase();
     if (!conn) {
-      return NextResponse.json({
-        success: true,
-        action: 'SIMULATED',
-        asin: payload.asin,
-        name: payload.title,
-        rehostedImages: rehostedImages.length,
-        rehostedVideos: rehostedVideos.length,
-        message: 'Standalone mode: Product processed without persistent DB.',
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          action: 'SIMULATED',
+          asin: payload.asin,
+          name: payload.title,
+          rehostedImages: rehostedImages.length,
+          rehostedVideos: rehostedVideos.length,
+          message: 'Standalone mode: Product processed without persistent DB.',
+        },
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     const existingProduct = await Product.findOne({ asin: payload.asin });
@@ -176,26 +195,29 @@ export async function POST(req: NextRequest) {
       `✅ [Ingest] ASIN ${payload.asin} ${isUpdate ? 'UPDATED' : 'CREATED'} in Vault: "${payload.title.substring(0, 40)}..."`
     );
 
-    return NextResponse.json({
-      success: true,
-      action: isUpdate ? 'UPDATED' : 'CREATED',
-      productId: updatedDoc._id,
-      asin: updatedDoc.asin,
-      name: updatedDoc.name,
-      active: updatedDoc.active,
-      rehostedMedia: {
-        images: rehostedImages.length,
-        videos: rehostedVideos.length,
+    return NextResponse.json(
+      {
+        success: true,
+        action: isUpdate ? 'UPDATED' : 'CREATED',
+        productId: updatedDoc._id,
+        asin: updatedDoc.asin,
+        name: updatedDoc.name,
+        active: updatedDoc.active,
+        rehostedMedia: {
+          images: rehostedImages.length,
+          videos: rehostedVideos.length,
+        },
+        message: isUpdate
+          ? 'Product successfully updated in Agent Knowledge Vault.'
+          : 'Product successfully ingested into Agent Knowledge Vault.',
       },
-      message: isUpdate
-        ? 'Product successfully updated in Agent Knowledge Vault.'
-        : 'Product successfully ingested into Agent Knowledge Vault.',
-    });
+      { status: 200, headers: corsHeaders }
+    );
   } catch (err: any) {
     console.error('❌ Error in /api/products/ingest:', err);
     return NextResponse.json(
       { success: false, error: err.message || 'Internal Server Error' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
