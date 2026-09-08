@@ -1,6 +1,36 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL;
+export function getSanitizedMongoUri(): string | null {
+  let uri = (process.env.MONGODB_URI || process.env.MONGO_URL || '').trim();
+  if (!uri) return null;
+
+  // Remove surrounding quotes if accidentally pasted in Vercel
+  if (
+    (uri.startsWith('"') && uri.endsWith('"')) ||
+    (uri.startsWith("'") && uri.endsWith("'"))
+  ) {
+    uri = uri.slice(1, -1).trim();
+  }
+
+  // Handle common copy-paste errors
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    if (uri.startsWith('//')) {
+      uri = `mongodb+srv:${uri}`;
+    } else if (uri.includes('@') && uri.includes('.mongodb.net')) {
+      uri = `mongodb+srv://${uri}`;
+    }
+  }
+
+  // Final scheme validation
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    console.warn(
+      `⚠️ Invalid MONGODB_URI scheme: "${uri.substring(0, 20)}...". Expected connection string to start with "mongodb://" or "mongodb+srv://". Falling back to in-memory mode.`
+    );
+    return null;
+  }
+
+  return uri;
+}
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -19,8 +49,9 @@ if (!cached) {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose | null> {
-  if (!MONGODB_URI) {
-    console.warn('⚠️ MONGODB_URI is not defined in environment variables. Database operations will be mocked or skipped.');
+  const mongoUri = getSanitizedMongoUri();
+  if (!mongoUri) {
+    console.warn('⚠️ MONGODB_URI is not defined or invalid. Database operations will be mocked or skipped.');
     return null;
   }
 
@@ -36,7 +67,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
       dbName: process.env.MONGODB_DB_NAME || 'threads_agent',
     };
 
-    cached!.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
+    cached!.promise = mongoose.connect(mongoUri, opts).then((m) => {
       console.log('✅ Connected to MongoDB Atlas');
       return m;
     });
