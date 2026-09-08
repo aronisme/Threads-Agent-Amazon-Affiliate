@@ -39,6 +39,49 @@ export interface IVisualContext {
   analyzedAt?: Date;
 }
 
+export interface AmazonProductExportPayload {
+  asin: string;
+  title: string;
+  brand?: string;
+  brandUrl?: string;
+  productUrl?: string;
+  affiliateLink: string;
+  trackingId?: string;
+  price?: string;
+  listPrice?: string;
+  discount?: string;
+  currency?: string;
+  availability?: string;
+  isOutOfStock?: boolean;
+  seller?: string;
+  returnPolicy?: string;
+  rating?: string;
+  reviewCount?: string;
+  selectedColor?: string;
+  selectedSize?: string;
+  breadcrumbs?: string[];
+  bullets?: string[];
+  quickFacts?: Record<string, string>;
+  specifications?: Record<string, string>;
+  description?: string;
+  creatorNotes?: string;
+  images?: Array<{
+    url: string;
+    thumbUrl?: string;
+    variant?: string;
+    isHiRes?: boolean;
+  }>;
+  videos?: Array<{
+    title?: string;
+    mp4Url?: string;
+    hlsUrl?: string;
+    thumbnail?: string;
+    duration?: string;
+    creator?: string;
+  }>;
+  scrapedAt?: string;
+}
+
 export interface IProduct {
   _id?: string;
   name: string;
@@ -47,6 +90,16 @@ export interface IProduct {
   affiliateUrl: string;
   category: string;
   notes: string;
+  creatorNotes?: string;
+  price?: string;
+  listPrice?: string;
+  discount?: string;
+  currency?: string;
+  rating?: string;
+  reviewCount?: string;
+  bullets?: string[];
+  breadcrumbs?: string[];
+  quickFacts?: Record<string, string>;
   imageUrl?: string;
   videoUrl?: string;
   images?: string[];

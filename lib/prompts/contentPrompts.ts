@@ -49,17 +49,41 @@ Since you are attaching a ${mediaType === 'VIDEO' ? 'short video' : 'photo'} of 
 Do NOT say "in this photo" or "check out this image". Talk like someone sharing a real photo of their actual daily desk setup.`
             : '';
 
-        instruction = `You are discussing a clever tool or design related to "${topic}":
-Item: ${productKnowledge.name}
-Details: ${productKnowledge.notes || 'a practical everyday accessory'}
-${visualBlock}
+        // Distill background facts strictly for subconscious context (never to be recited)
+        const facts: string[] = [];
+        if (productKnowledge.brand) {
+          facts.push(`Brand/Maker: ${productKnowledge.brand}`);
+        }
+        if (productKnowledge.price) {
+          facts.push(`Price Point: ${productKnowledge.price} (keep in mind for value perspective)`);
+        }
+        if (productKnowledge.rating && productKnowledge.reviewCount) {
+          facts.push(`Community Reception: ${productKnowledge.rating}/5 stars from ${productKnowledge.reviewCount} users`);
+        }
+        if (productKnowledge.creatorNotes) {
+          facts.push(`Creator Personal Note: "${productKnowledge.creatorNotes}"`);
+        }
+        if (Array.isArray(productKnowledge.bullets) && productKnowledge.bullets.length > 0) {
+          const topBullets = productKnowledge.bullets.slice(0, 2).map((b) => b.trim()).join(' | ');
+          facts.push(`Background Utility/Specs (DO NOT RECITE): ${topBullets}`);
+        }
 
-TASK: Share a natural everyday observation about the specific annoyance this type of tool addresses.
-RULES:
-1. Do NOT sound like an advertisement, marketer, or paid sponsor.
-2. Do NOT fake personal backstories (e.g. do not say "I've owned this for 5 years" unless verified in notes). Frame it around the smart utility or design: "never realized how much cable clutter annoyed me until...", "there's something so satisfying about a charger that...".
-3. Focus on the feeling, problem-solving, or minimalist aesthetic.
-4. Do NOT include the URL link in this main post text. Keep the post 100% focused on genuine social discussion.`;
+        const backgroundFactsBlock =
+          facts.length > 0
+            ? `\nPRODUCT BACKGROUND FACTS (For subconscious grounding only):\n${facts.map((f) => `- ${f}`).join('\n')}\n`
+            : '';
+
+        instruction = `You are casually discussing a clever tool or design related to "${topic}":
+Item: ${productKnowledge.name}
+Core Context: ${productKnowledge.notes || 'a practical everyday accessory'}
+${backgroundFactsBlock}${visualBlock}
+
+TASK: Share a natural everyday observation or realization about the specific annoyance or micro-problem this type of tool addresses.
+STRICT HUMAN GUARDRAILS (NEVER SOUND LIKE A BOT OR AFFILIATE MARKETER):
+1. NO SALES PITCHES OR CATALOG JARGON: Never write headlines like "Upgrade your workspace!", "Must-have gadget!", "Game changer", or "Looking for the best...".
+2. DO NOT RECITE SPECS OR BULLETS: Never list dimensions, wattages, or feature bullet points. Humans don't talk like spec sheets. If you touch on price, do it casually (e.g. "for twenty bucks it felt way sturdier than expected" or "not bad for the price").
+3. NO FAKE BACKSTORIES: Don't pretend you've used it for 10 years unless verified in creator notes. Focus on the physical design, the clever fix to an annoying problem, or why it feels satisfying on a desk.
+4. NO LINKS OR HASHTAGS: Do NOT include URLs, affiliate links, or hashtags in this post. Keep it 100% focused on organic community banter.`;
       }
       break;
 
