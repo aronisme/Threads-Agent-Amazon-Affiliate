@@ -65,9 +65,8 @@ export async function GET(req: NextRequest) {
       (!state.cooldowns.nextPostAllowedAt || new Date(state.cooldowns.nextPostAllowedAt) <= now) &&
       state.dailyActions.postsCount < 6;
 
-    // Check if we should poll replies: only if we have active posts and randomly on ~15% of pings
-    const shouldCheckReplies =
-      state.dailyActions.postsCount > 0 && Math.random() < 0.15;
+    // Check replies: In autonomous mode (Level 2 & 3), actively monitor inbound replies
+    const shouldCheckReplies = state.autonomyLevel >= 2;
 
     if (isPostAllowed) {
       // Evolve mood naturally before composing
@@ -104,6 +103,20 @@ export async function GET(req: NextRequest) {
           await jobQueue.complete(claimed._id.toString());
         } else {
           await jobQueue.fail(claimed._id.toString(), executionResult.error || 'Failed');
+        }
+
+        // If new replies were discovered, immediately claim and process the reply in the same cycle
+        const discovered = executionResult.result?.repliesDiscovered || 0;
+        if (discovered > 0) {
+          const replyJob = await jobQueue.claimNext();
+          if (replyJob) {
+            const replyExec = await workerRunner.executeJob(replyJob);
+            if (replyExec.success) {
+              await jobQueue.complete(replyJob._id.toString());
+            } else {
+              await jobQueue.fail(replyJob._id.toString(), replyExec.error || 'Failed');
+            }
+          }
         }
       }
 
