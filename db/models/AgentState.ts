@@ -100,6 +100,7 @@ const AgentStateSchema = new Schema<AgentStateDocument>(
     },
     autonomyLevel: { type: Number, default: 1, min: 0, max: 3 },
     dryRunMode: { type: Boolean, default: false },
+    isPaused: { type: Boolean, default: false },
     commercialPressureScore: { type: Number, default: 0.0, min: 0.0, max: 1.0 },
     commercialBudget: {
       dailyLimit: { type: Number, default: 4.0 },

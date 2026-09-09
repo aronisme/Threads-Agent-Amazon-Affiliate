@@ -68,6 +68,7 @@ let inMemoryState: any = {
   },
   autonomyLevel: 1,
   dryRunMode: false,
+  isPaused: false,
   commercialPressureScore: 0.0,
   commercialBudget: {
     dailyLimit: 4.0,

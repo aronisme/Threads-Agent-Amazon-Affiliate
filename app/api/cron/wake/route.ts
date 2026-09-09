@@ -19,7 +19,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized wake signal' }, { status: 401 });
     }
 
-    // 2. Claim next pending job due in queue (e.g. scheduled delayed self-reply)
+    // 2. Master Kill-Switch: If agent is paused, exit immediately without executing any work
+    const state = await stateManager.getState();
+    if (state.isPaused) {
+      return NextResponse.json({
+        success: true,
+        action: 'PAUSED',
+        reason: 'Agent is currently paused via Master Toggle Switch.',
+        durationMs: Date.now() - startTime,
+      });
+    }
+
+    // 3. Claim next pending job due in queue (e.g. scheduled delayed self-reply)
     let claimed = await jobQueue.claimNext();
     let executionResult = null;
 
@@ -43,8 +54,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 3. If queue is empty, evaluate whether a new action is allowed
-    const state = await stateManager.getState();
+    // 4. If queue is empty, evaluate whether a new action is allowed
     const now = new Date();
 
     const usHour = getUSHour('America/New_York');

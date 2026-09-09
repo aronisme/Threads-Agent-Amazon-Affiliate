@@ -249,6 +249,7 @@ export interface IAgentState {
   };
   autonomyLevel: AutonomyLevel;
   dryRunMode: boolean;
+  isPaused?: boolean;
   threadsUserId?: string;
   hasToken?: boolean;
   credentials?: IThreadsCredentials;

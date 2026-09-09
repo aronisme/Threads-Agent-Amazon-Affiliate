@@ -13,6 +13,7 @@ import {
   AlertCircle,
   ExternalLink,
   Compass,
+  Power,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
@@ -89,6 +90,26 @@ export default function DashboardPage() {
       await fetchDashboardData();
     } catch (err: any) {
       alert('Error discovering topics: ' + err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleTogglePause = async () => {
+    try {
+      setActionLoading('togglePause');
+      const newPaused = !state?.isPaused;
+      const res = await fetch('/api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPaused: newPaused }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setState((prev: any) => ({ ...prev, isPaused: newPaused }));
+      }
+    } catch (err: any) {
+      alert('Error toggling pause state: ' + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -184,9 +205,24 @@ export default function DashboardPage() {
 
         {/* Action Controls */}
         <div className="flex flex-wrap gap-2.5 relative z-10">
+          {/* Master Kill-Switch / Pause Toggle */}
+          <button
+            onClick={handleTogglePause}
+            disabled={actionLoading !== null}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition border disabled:opacity-50 shadow-md ${
+              state?.isPaused
+                ? 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30 ring-1 ring-red-500/30'
+                : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+            }`}
+            title={state?.isPaused ? strings.resumeAgentBtn : strings.pauseAgentBtn}
+          >
+            <Power className={`w-3.5 h-3.5 ${state?.isPaused ? 'text-red-400' : 'text-emerald-400'}`} />
+            {state?.isPaused ? strings.agentPaused : strings.agentRunning}
+          </button>
+
           <button
             onClick={handleRunCycle}
-            disabled={actionLoading !== null}
+            disabled={actionLoading !== null || state?.isPaused}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition disabled:opacity-50 shadow-md"
           >
             <Zap className={`w-3.5 h-3.5 ${actionLoading === 'cycle' ? 'animate-spin' : ''}`} />
@@ -194,7 +230,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={handleCompose}
-            disabled={actionLoading !== null}
+            disabled={actionLoading !== null || state?.isPaused}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 text-white font-medium text-xs hover:bg-zinc-700 transition border border-zinc-700 disabled:opacity-50"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
@@ -202,7 +238,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={handleDiscover}
-            disabled={actionLoading !== null}
+            disabled={actionLoading !== null || state?.isPaused}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 text-white font-medium text-xs hover:bg-zinc-700 transition border border-zinc-700 disabled:opacity-50"
           >
             <Compass className="w-3.5 h-3.5 text-purple-400" />
@@ -210,6 +246,26 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Paused Warning Banner */}
+      {state?.isPaused && (
+        <div className="bg-red-950/30 border border-red-500/30 p-4 rounded-xl text-xs text-red-300 flex items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+            <span>
+              {language === 'id'
+                ? 'Agen saat ini DINONAKTIFKAN (JEDA). Seluruh siklus cron otomatis dan postingan dibekukan sementara.'
+                : 'Agent is currently PAUSED. All automated cron cycles and postings are temporarily frozen.'}
+            </span>
+          </div>
+          <button
+            onClick={handleTogglePause}
+            className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold text-xs transition shrink-0"
+          >
+            {strings.resumeAgentBtn}
+          </button>
+        </div>
+      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">

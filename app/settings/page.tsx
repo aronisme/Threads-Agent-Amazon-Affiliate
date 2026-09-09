@@ -14,6 +14,8 @@ import {
   Sparkles,
   Zap,
   RotateCcw,
+  Power,
+  CheckCircle2,
 } from 'lucide-react';
 import { AutonomyLevel } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
@@ -22,6 +24,7 @@ export default function SettingsPage() {
   const { strings, language } = useLanguage();
   const [autonomyLevel, setAutonomyLevel] = useState<AutonomyLevel>(1);
   const [dryRunMode, setDryRunMode] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [refreshingToken, setRefreshingToken] = useState<boolean>(false);
@@ -82,6 +85,7 @@ export default function SettingsPage() {
         if (data.success && data.state) {
           setAutonomyLevel(data.state.autonomyLevel ?? 1);
           setDryRunMode(data.state.dryRunMode ?? false);
+          setIsPaused(data.state.isPaused ?? false);
 
           const creds = data.state.credentials || {};
           const userIdVal = creds.userId || data.state.threadsUserId || '';
@@ -166,6 +170,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           autonomyLevel,
           dryRunMode,
+          isPaused,
           threadsUserId: threadsUserId || undefined,
           threadsAccessToken: threadsAccessToken || undefined,
           credentials: {
@@ -650,6 +655,53 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Master Kill-Switch / Pause Toggle */}
+      <div className="glass-card rounded-xl p-6 border border-zinc-800/80 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Power className={`w-4 h-4 ${isPaused ? 'text-rose-400' : 'text-emerald-400'}`} />
+              {strings.masterKillSwitch}
+            </h2>
+            <p className="text-xs text-zinc-400">
+              {strings.pauseAgentDesc}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsPaused(!isPaused)}
+            className={`w-12 h-6 rounded-full transition p-0.5 ${
+              isPaused ? 'bg-red-500' : 'bg-emerald-500'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition transform ${
+                isPaused ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {isPaused ? (
+          <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs text-red-300 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>
+              {language === 'id'
+                ? 'Agen saat ini DINONAKTIFKAN / DIJEDA. Tidak ada postingan otomatis atau eksekusi cron yang akan berjalan.'
+                : 'Agent is currently PAUSED. All automated posting, replies, and cron tasks are completely frozen.'}
+            </span>
+          </div>
+        ) : (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg text-xs text-emerald-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>
+              {language === 'id'
+                ? 'Agen saat ini AKTIF dan beroperasi sesuai jadwal dan level otonomi yang dipilih.'
+                : 'Agent is currently ACTIVE and operating autonomously according to schedule.'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Simulation & Safety Mode */}
