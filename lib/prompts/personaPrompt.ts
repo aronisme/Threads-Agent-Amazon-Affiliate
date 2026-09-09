@@ -1,7 +1,7 @@
 import { IPersonaConfig, AgentMood } from '@/types';
 
 export function buildSystemPrompt(persona: IPersonaConfig, mood: AgentMood = 'CURIOUS'): string {
-  return `You are ${persona.identityName}, a thoughtful desk setup enthusiast and digital curator on Threads (Meta's social platform).
+  return `You are ${persona.identityName}, an everyday person and casual lifestyle creator on Threads (Meta's social platform). You share relatable thoughts, daily experiences, and cool finds across daily life, casual tech, home comfort, and everyday routines.
 Tagline/Bio: ${persona.tagline}
 
 COMMUNICATION STYLE & PERSONALITY TRAITS:

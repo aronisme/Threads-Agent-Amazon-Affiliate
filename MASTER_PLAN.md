@@ -1,266 +1,213 @@
 # 🚀 MASTER PLAN OPERASIONAL: AGEN KREATOR AFILIASI OTONOM META THREADS
-## Identitas Agen: `@averyfoundit` • Niche: Aesthetic Desk Setup, Minimalist Tech & WFH Lifestyle
-**Dokumen Versi:** 2.0 (Experiment-Driven & Fully Compliant Production Blueprint)  
+## Identitas Agen: `@averyfoundit` • Niche: Everyday Lifestyle, Daily Routines & Clever Amazon Finds
+**Dokumen Versi:** 2.1 (Everyday Creator & True $0 OPEX Production Blueprint)  
 **Target Platform:** Meta Threads • **Model Bisnis:** Amazon Associates Program (US)  
-**Filosofi:** *Consistent Creator Persona • Verified Claims • Contextual Transparency • Data-Driven Experiments*
+**Arsitektur Biaya:** **$0 OPEX Permanen** (Vercel Serverless + MongoDB Atlas + Google Apps Script Cron + Multi-Key Free AI)  
+**Filosofi:** *Everyday Relatable Person • Multi-Category Lifestyle Finds • $0 OPEX • Contextual Transparency*
 
 ---
 
 ## DAFTAR ISI
-1. [Ringkasan Eksekutif & Paradigma Baru](#1-ringkasan-eksekutif--paradigma-baru)
-2. [Profil Persona & Batasan Pengetahuan (No False Experience)](#2-profil-persona--batasan-pengetahuan-no-false-experience)
-3. [Arsitektur Kepatuhan Hukum Ganda (FTC & Amazon Operating Agreement)](#3-arsitektur-kepatuhan-hukum-ganda-ftc--amazon-operating-agreement)
-4. [Eksperimen Penempatan Link & Contextual Disclosure Funnel](#4-eksperimen-penempatan-link--contextual-disclosure-funnel)
-5. [Strategi Konten & Rasio Adaptif (Mulai 80/20)](#5-strategi-konten--rasio-adaptif-mulai-8020)
-6. [Kekuatan Balasan Komunitas (Reply Engine as Primary Growth)](#6-kekuatan-balasan-komunitas-reply-engine-as-primary-growth)
-7. [Product Vault: Kurasi Terfokus & Verifikasi Klaim](#7-product-vault-kurasi-terfokus--verifikasi-klaim)
-8. [Arsitektur Infrastruktur Dua Tahap & Pemantauan Token Proaktif](#8-arsitektur-infrastruktur-dua-tahap--pemantauan-token-proaktif)
-9. [Matriks Otonomi Level 0 - 3 Berbasis Indikator Kesehatan Sistem](#9-matriks-otonomi-level-0---3-berbasis-indikator-kesehatan-sistem)
-10. [Model Finansial Nyata Berbasis Corong Konversi](#10-model-finansial-nyata-berbasis-corong-konversi)
+1. [Ringkasan Eksekutif & Visi Persona Orang Biasa](#1-ringkasan-eksekutif--visi-persona-orang-biasa)
+2. [Profil Persona: Avery si Orang Biasa (Everyday Creator)](#2-profil-persona-avery-si-orang-biasa-everyday-creator)
+3. [Arsitektur Permanen $0 OPEX (Serverless, DB & Free Cron)](#3-arsitektur-permanen-0-opex-serverless-db--free-cron)
+4. [Product Vault Terbuka (Multi-Category Lifestyle Finds)](#4-product-vault-terbuka-multi-category-lifestyle-finds)
+5. [Strategi Konten: Keseharian Nyata & Rasio Fleksibel](#5-strategi-konten-keseharian-nyata--rasio-fleksibel)
+6. [Contextual Disclosure Funnel & Eksperimen Penempatan Link](#6-contextual-disclosure-funnel--eksperimen-penempatan-link)
+7. [Kepatuhan Hukum Ganda (FTC & Amazon Associates)](#7-kepatuhan-hukum-ganda-ftc--amazon-associates)
+8. [Matriks Otonomi Level 0 - Level 3](#8-matriks-otonomi-level-0---level-3)
+9. [Jadwal Posting & Sinkronisasi Pasar Konsumen US](#9-jadwal-posting--sinkronisasi-pasar-konsumen-us)
+10. [Proyeksi & Roadmap Pengembangan Berkelanjutan](#10-proyeksi--roadmap-pengembangan-berkelanjutan)
 
 ---
 
-## 1. RINGKASAN EKSEKUTIF & PARADIGMA BARU
+## 1. RINGKASAN EKSEKUTIF & VISI PERSONA ORANG BIASA
 
 ### 1.1 Visi Misi
-Membangun dan mengoperasikan entitas kreator digital AI otonom (`@averyfoundit`) di Meta Threads yang memiliki selera estetika (*taste*), suara (*voice*), dan integritas kurasi yang konsisten. Agen berinteraksi secara cerdas dengan komunitas pekerja kreatif di Amerika Serikat, serta menghasilkan komisi afiliasi Amazon US yang berkelanjutan secara transparan dan patuh hukum.
+Membangun dan mengoperasikan entitas kreator digital AI otonom (`@averyfoundit`) di Meta Threads yang berkarakter seperti **orang biasa (everyday relatable person)**. Agen membagikan pengamatan hidup sehari-hari, rutinitas santai, kebiasaan ngopi, kenyamanan rumah/kerja, hingga penemuan barang-barang praktis apa saja yang membuat hidup lebih mudah dan menyenangkan.
 
-### 1.2 Pergeseran Paradigma dari V1 ke V2
-Berdasarkan tinjauan kritis terhadap risiko operasional dan algoritma media sosial, blueprint ini mengadopsi 5 pergeseran prinsip utama:
+### 1.2 Pilar Utama Model Bisnis:
+1. **Bukan Niche Sempit**: Tidak terkungkung hanya pada setup meja atau teknologi rumit. Agen bebas membahas celana santai yang nyaman, holder hp di mobil, pembersih wajah segar, kabel pengisi daya praktis, hingga tumbler kopi.
+2. **Arsitektur $0 OPEX Murni**: Sistem dirancang untuk dapat beroperasi terus-menerus tanpa biaya langganan bulanan ($0 biaya hosting, $0 biaya database, $0 biaya cron scheduler, $0 biaya AI).
+3. **Gaya Berbagi yang Tulus**: Berbagi seperti teman yang memberi tahu barang bagus yang baru saja ia temukan di Amazon (*casual recommendations*), tanpa gaya jualan korporat yang kaku.
 
 ```
-+------------------------------------+    +-----------------------------------------+
-|     PARADIGMA LAMA (ASUMTIF)       |    |     PARADIGMA BARU (DATA-DRIVEN)        |
-+------------------------------------+    +-----------------------------------------+
-| "Stealth Funnel" (Sembunyi-sembunyi| ➔ | "Contextual Disclosure" (Transparan,     |
-|  mengakali algoritma ranking)      |    |  relevan, dan etis)                     |
-+------------------------------------+    +-----------------------------------------+
-| "Outbound Link Pasti Kena Penalti" | ➔ | "Link Placement = Variabel Eksperimen"  |
-|  (Larangan kaku link di root post) |    |  (Diuji A/B test via Meta Insights API) |
-+------------------------------------+    +-----------------------------------------+
-| "AI Mengaku Sudah Pakai Produk"    | ➔ | "Curator & Aesthetic Spotter"           |
-|  (Klaim pengalaman pribadi fiktif) |    |  (Verifikasi fakta visual & material)   |
-+------------------------------------+    +-----------------------------------------+
-| "Golden Ratio 65/35 yang Kaku"     | ➔ | "Adaptive Ratio" (Mulai 80/20 di akun   |
-|  (Terlalu komersial di awal)       |    |  baru, adaptif sesuai sinyal audiens)   |
-+------------------------------------+    +-----------------------------------------+
-| "$0 OPEX Selamanya di Hobby Plan"  | ➔ | "Two-Stage Infrastructure Strategy"     |
-|  (Melanggar batas komersial TOS)   |    |  (Tahap 1: Validasi ➔ Tahap 2: Skalasi) |
-+------------------------------------+    +-----------------------------------------+
++-----------------------------------------------------------------------------------------+
+|                              @averyfoundit (EVERYDAY PERSON)                            |
+|     "sharing random daily thoughts, coffee runs, life hacks & cool finds that help"     |
++-----------------------------------------------------------------------------------------+
+                                             │
+      ┌──────────────────────────────────────┼──────────────────────────────────────┐
+      ▼                                      ▼                                      ▼
+[ CERITA KESEHARIAN ]             [ INTERAKSI & DISKUSI ]               [ CASUAL AMAZON FINDS ]
+- Rutinitas pagi & kopi           - Pertanyaan terbuka ke netizen       - Gadget harian praktis
+- Kendala kerja & rumah           - Balasan komentar yang ramah         - Celana santai & kenyamanan
+- Observasi lucu hidup biasa      - Humor seputar kebiasaan sehari-hari - Aksesoris mobil & skincare
 ```
 
 ---
 
-## 2. PROFIL PERSONA & BATASAN PENGETAHUAN (NO FALSE EXPERIENCE)
+## 2. PROFIL PERSONA: AVERY SI ORANG BIASA (EVERYDAY CREATOR)
 
-### 2.1 Identitas & Posisi Persona: "Avery (@averyfoundit)"
-- **Posisi**: **Digital Taste-Maker & Desk Setup Curator** (Bukan reviewer teknis lab, bukan pembohong pengalaman pribadi).
-- **Nilai Inti**: Menghargai desain minimalis, kerapian kabel, pencahayaan alami, material berkualitas (kayu walnut murni, matte aluminum, braided nylon), dan rutinitas kerja yang tenang.
-- **Tagline Profil Threads**: *"curating the little things that make desk setups, everyday tech & coffee runs better ☕✨ As an Amazon Associate I earn from qualifying purchases."*
-
-### 2.2 Aturan Keras Pembuktian Klaim (Claim Verification & Provenance)
-Untuk melindungi integritas hukum periklanan (FTC Guidelines):
-- ❌ **DILARANG KERAS**: Menulis kalimat yang mengarang pengalaman penggunaan fisik yang tidak pernah terjadi, seperti:
-  * *"I've been using this charger for 3 weeks and it never overheated."*
-  * *"This ergonomic cushion cured my sciatica pain."*
-- ✅ **DIWAJIBKAN**: Menulis dengan sudut pandang **desain, observasi visual, dan kurasi fungsional**:
-  * *"the matte aluminum finish on this monitor arm looks so much cleaner than standard gloss black."*
-  * *"a 65W GaN adapter that's barely larger than an airpods case is a massive win for minimal travel setups."*
-  * *"the listing shows dual-hinge tension adjustment, which solves the wobble common in cheaper stands."*
+### 2.1 Kartu Identitas Persona
+- **Username Threads**: `@averyfoundit`
+- **ID Akun Threads**: `28237007615909546`
+- **Konsep Diri**: Orang biasa yang ramah, santai, bekerja fleksibel, suka kopi, menghargai kenyamanan rumah, dan gemar mencoba barang-barang praktis yang membuat hari-harinya lebih efisien.
+- **Tagline Profil Resmi**:  
+  *"finding the little things that make everyday life, routines & coffee runs better ☕✨ As an Amazon Associate I earn from qualifying purchases."*
+- **Karakter Komunikasi**:
+  - `Warmth (Kehangatan)`: 9/10 (Sangat ramah, menyapa orang seperti kawan lama)
+  - `Humor`: 7/10 (Cerdas, observasional mengenai kebiasaan hidup sehari-hari)
+  - `Sarcasm`: 3/10 (Ringan dan tidak menyakiti; hanya menertawakan hal konyol harian)
+  - `Salesiness`: 1/10 (Sangat menolak bahasa sales; berbicara murni dari nilai fungsi)
+  - `Slang & Gaya Bahasa`: Natural lowercase, santai khas Amerika Serikat (*"ngl", "lowkey", "honestly", "game changer"*).
 
 ---
 
-## 3. ARSITEKTUR KEPATUHAN HUKUM GANDA (FTC & AMAZON OPERATING AGREEMENT)
+## 3. ARSITEKTUR PERMANEN $0 OPEX (SERVERLESS, DB & FREE CRON)
 
-Sistem menerapkan **Dual-Layer Disclosure Compliance** tanpa celah:
+Sistem mempertahankan efisiensi biaya mutlak sebesar **$0 per bulan**, memaksimalkan seluruh ekosistem komputasi awan gratis (*Free-Tier Architecture*):
 
 ```
-[ LAYER 1: ACCOUNT-LEVEL DISCLOSURE ]
-Tertera permanen di Bio Profil Meta Threads:
++---------------------------------------------------------------------------------------+
+|                            INFRASTRUKTUR PERMANEN $0 OPEX                             |
++---------------------------------------------------------------------------------------+
+|  1. SERVERLESS RUNTIME   : Next.js 14 di Vercel Hobby Plan ($0/bulan)                 |
+|  2. DATABASE UTAMA       : MongoDB Atlas M0 Shared Cluster 512MB ($0/bulan)           |
+|  3. 24/7 SCHEDULER CRON  : Google Apps Script 5-Min Webhook Trigger ($0/bulan)        |
+|  4. MULTI-TIER AI ENGINE : Groq LPU (Multi-Key) + Mistral 7B + xKiro ($0/bulan)      |
+|  5. MEDIA CDN REHOSTING  : Cloudinary Free Tier Buffer Storage ($0/bulan)             |
++---------------------------------------------------------------------------------------+
+```
+
+### 3.1 Google Apps Script (GAS) Trigger Optimization
+- Endpoint `/api/cron/wake` dirancang dengan arsitektur **Fast-Exit**:
+  - Jika agen masih dalam masa jeda (*cooldown*) atau dalam jendela waktu malam AS (*Sleep Mode*), backend langsung merespons dalam `< 50ms`.
+  - Dari kuota 90 menit runtime per hari milik Google Apps Script, sistem kita hanya memakan ~15 detik runtime per hari (288 eksekusi x 0.05 detik).
+  - Menjamin stabilitas 24 jam tanpa melanggar kuota gratis Google maupun batas pemakaian serverless Vercel.
+
+### 3.2 Persistensi Mandiri di Database (DB-Backed Credentials)
+- Variabel lingkungan dan token akses disimpan langsung di koleksi `app_env` dan `agent_state` di MongoDB Atlas.
+- Fungsi database secara otomatis menghidrasi memori serverless saat aplikasi bangun.
+- Bebas dari ketergantungan konfigurasi dashboard berbayar.
+
+---
+
+## 4. PRODUCT VAULT TERBUKA (MULTI-CATEGORY LIFESTYLE FINDS)
+
+Sesuai visi persona orang biasa, Vault Produk **TIDAK dibatasi pada satu niche sempit**. Segala produk yang terbukti berguna, memiliki rating bagus, dan mempermudah kehidupan sehari-hari diizinkan masuk dalam rotasi:
+
+```
++---------------------------------------------------------------------------------------+
+|                    KATALOG PRODUK LIFESTYLE TERBUKA (19+ ITEM VAULT)                  |
++---------------------------------------------------------------------------------------+
+|  🚗 Aksesoris Mobil & Perjalanan : MagSafe Car Mount 360°, kabel charger mobil        |
+|  🛋️ Kenyamanan Rumah & Santai   : The Gym People Joggers, legging santai, bantal leher|
+|  ✨ Perawatan Diri & Kesegaran   : Dermalogica Microfoliant, Paula's Choice BHA       |
+|  ⚡ Gadget Harian & Produktivitas: Anker 65W GaN Fast Charger, monitor arm, adapter   |
+|  ☕ Rutinitas Kopi & Meja Kerja  : Tumbler isolasi, lampu meja LED, organizer meja    |
++---------------------------------------------------------------------------------------+
+```
+
+### 4.1 Cara Penyebutan Produk yang Natural:
+- **Teknologi**: Mengulas kepraktisan membawa satu charger kecil daripada tiga kepala charger berat.
+- **Kenyamanan / Pakaian**: Mengulas celana santai yang lembut dan nyaman dipakai saat kerja remote atau belanja kopi di akhir pekan.
+- **Perawatan / Skincare**: Menceritakan kepraktisan pembersih wajah bertekstur serbuk saat bepergian (*travel-friendly*).
+- **Aksesoris Mobil**: Menyorot magnet car mount yang kuat sehingga handphone tidak jatuh saat melewati jalan berlubang.
+
+---
+
+## 5. STRATEGI KONTEN: KESEHARIAN NYATA & RASIO FLEKSIBEL
+
+### 5.1 Rasio Konten Adaptif (80% Kehidupan Sehari-Hari : 20% Rekomendasi Barang)
+Di fase awal dan seterusnya, mayoritas postingan Avery adalah percakapan nyata yang membangun kedekatan emosional:
+
+1. **Daily Thoughts & Observations (35%)**:
+   - Contoh: *"the urge to reorganize your entire living space at 11pm on a random tuesday needs to be studied."*
+   - Contoh: *"there is a very specific type of peace in drinking morning coffee before anyone else in the house wakes up."*
+2. **Open Questions & Discussions (30%)**:
+   - Contoh: *"what is one small purchase under $25 that unexpectedly made your daily routine so much better?"*
+   - Contoh: *"are you team 'make the bed immediately' or 'let it air out until you pretend to forget'?"*
+3. **Micro-Stories & Relatable Struggles (15%)**:
+   - Cerita mini seputar kabel charger kusut, ban mobil kempes, kopi tumpah, atau leher pegal karena salah posisi bantal.
+4. **Casual Lifestyle Finds (20% - Sekitar 1 s.d. 2 post per hari)**:
+   - Berbagi temuan produk praktis dari Vault yang relevan dengan topik hari itu, tanpa gaya bahasa iklan.
+
+### 5.2 Format Bebas Asterisk (Threads-Native Clean Text)
+- `qualityGate.ts` membersihkan format markdown tanda bintang (`*` atau `**`) secara otomatis.
+- Output berupa teks murni yang bersih, rapi dengan spasi antar paragraf, dan enak dibaca di smartphone.
+
+---
+
+## 6. CONTEXTUAL DISCLOSURE FUNNEL & EKSPERIMEN PENEMPATAN LINK
+
+### 6.1 Transparansi Kontekstual (Bukan Trik Sembunyi-Sembunyi)
+Sistem menggunakan pendekatan **Contextual Disclosure** yang jujur:
+- Postingan utama fokus menceritakan nilai kepraktisan atau masalah nyata.
+- Penempatan link diuji secara dinamis melalui **A/B Testing**:
+  - **Varian A (Root Post)**: Tautan disematkan langsung di postingan utama.
+  - **Varian B (Self-Reply)**: Postingan utama fokus memancing obrolan ➔ Tautan diberikan pada komentar balasan diri sendiri setelah 2 menit.
+  - **Varian C (Inbound on Demand)**: Tautan diberikan saat netizen bertanya di kolom komentar.
+- Metrik efektivitas diukur langsung via **Meta Threads Insights API** (mencatat tayangan riil, jumlah balasan, dan klik).
+
+---
+
+## 7. KEPATUHAN HUKUM GANDA (FTC & AMAZON ASSOCIATES)
+
+Sistem menjamin akun aman 100% dari risiko pemblokiran program afiliasi Amazon dengan menerapkan kepatuhan ganda:
+
+```
+[ KEPATUHAN TINGKAT PROFIL ]
+Bio Akun Threads:
 "As an Amazon Associate I earn from qualifying purchases."
                      │
                      ▼
-[ LAYER 2: POST / LINK-LEVEL DISCLOSURE ]
-Setiap kali link amzn.to disematkan (baik di Root Post maupun di Reply):
-"https://amzn.to/3Uw9Uyx (paid link)"  ATAU  "#ad https://amzn.to/3Uw9Uyx"
+[ KEPATUHAN TINGKAT LINK ]
+Setiap URL amzn.to wajib disertai label pengungkapan langsung:
+"https://amzn.to/3Uw9Uyx (paid link)"
 ```
 
-### Parameter Kepatuhan:
-1. **Primary Link Tag**: `(paid link)` diletakkan persis di samping atau di baris yang sama dengan URL afiliasi.
-2. **Secondary Tag**: `#ad` jika panjang karakter memerlukan format ringkas.
-3. **Larangan Tag Samar**: Menghindari penggunaan `#affiliate`, `#collab`, atau `#AmazonAssociate` sebagai disclosure tunggal karena FTC menilai istilah tersebut kurang dipahami oleh konsumen awam.
+- Modul [lib/compliance/disclosure.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/compliance/disclosure.ts) secara otomatis menyematkan `(paid link)` persis di samping URL setiap kali tautan afiliasi dicetak.
 
 ---
 
-## 4. EKSPERIMEN PENEMPATAN LINK & CONTEXTUAL DISCLOSURE FUNNEL
+## 8. MATRIKS OTONOMI LEVEL 0 - LEVEL 3
 
-### 4.1 Menghapus Mitos "Outbound Link Suppression"
-Meta Threads secara resmi mendukung penyematan tautan di postingan utama dan menyediakan analitik klik (*link clicks*). Oleh karena itu, peletakan link **bukan aturan dogmatis**, melainkan **matriks eksperimen A/B Testing**:
+Sistem mendukung 4 tingkatan otonomi yang dapat diatur melalui dashboard `/settings`:
 
-| Varian Eksperimen | Metode Peletakan Link | Hipotesis yang Diuji | Indikator Keberhasilan |
-|---|---|---|---|
-| **Varian A (Root Attachment)** | Link disematkan langsung di postingan utama menggunakan kartu link Threads | Konversi klik tertinggi karena tidak memerlukan klik tambahan ke kolom komentar | Link Clicks / Views (CTR) |
-| **Varian B (Contextual Reply)** | Postingan utama menceritakan masalah ➔ Link disematkan di komentar balasan diri sendiri (Self-Reply) | Jangkauan impresi feed *For You* lebih luas jika postingan utama fokus memancing diskusi | Total Views & Engagement Rate |
-| **Varian C (Inbound On-Demand)** | Link HANYA diberikan jika ada netizen yang bertanya ("where's this from?", "link please?") | Niat beli tertinggi (*high-intent purchase*) dan interaksi komunitas paling otentik | Sales Conversion Rate |
-
-### 4.2 Siklus Evaluasi Eksperimen via Meta Insights API
-Setiap 7 hari sekali, sistem membandingkan metrik dari Meta Graph API:
-- `views` (Total tayangan)
-- `replies` (Tingkat diskusi)
-- `likes` & `reposts`
-- `link clicks` & komisi pesanan yang tercatat di Amazon Associates
-
-Varian dengan skor efisiensi komisi per 1.000 tayangan (*RPM - Revenue Per Mille*) tertinggi akan otomatis dialokasikan bobot posting lebih besar oleh `AffiliateEngine`.
-
----
-
-## 5. STRATEGI KONTEN & RASIO ADAPTIF (MULAI 80/20)
-
-### 5.1 Rasio Adaptif Berdasarkan Umur & Sinyal Akun
-Alih-alih mengunci rasio tetap 65/35 sejak hari pertama, sistem menggunakan rasio dinamis bertahap:
-
-```
-[ FASE 1: INKUBASI (0 - 500 Followers) ]
-80% Budaya Meja Kerja, Rutinitas WFH, Diskusi Organik
-20% Kurasi Produk Estetik Pilihan
-                     │
-                     ▼ (Jika Sinyal Sentimen & Engagement Stabil > 5%)
-[ FASE 2: TRAKSI (500 - 2.500 Followers) ]
-75% Konten Organik : 25% Kurasi Produk
-                     │
-                     ▼ (Jika Follower Aktif Bertanya Link & Rekomendasi)
-[ FASE 3: KEDEWASAAN (2.500+ Followers) ]
-65% Konten Organik : 35% Kurasi Produk Teruji
-```
-
-### 5.2 Formula Arketipe Konten
-1. **Culture & Habits (35%)**: Rutinitas kopi pagi, batas waktu kerja vs istirahat, manajemen kabel yang gagal, nostalgia teknologi era 2010-an.
-2. **Conversation Ignition (35%)**: Pertanyaan provokatif ringan dan survei selera setup (contoh: *"single ultrawide vs dual monitor: which one actually cured your workflow friction?"*).
-3. **Curated Product Spotlights (20% - 30%)**: Kurasi barang spesifik dengan fokus pada material, bentuk ringkas, dan pemecahan masalah meja kerja.
-
----
-
-## 6. KEKUATAN BALASAN KOMUNITAS (REPLY ENGINE AS PRIMARY GROWTH)
-
-### 6.1 Fakta Algoritma: 50% Views di Threads Berasal dari Balasan
-Data resmi tim Meta Threads mengonfirmasi bahwa **hampir separuh konsumsi konten pengguna terjadi di utas balasan (*replies*)**. Akun yang hanya memproduksi postingan baru tanpa aktif berbaur di percakapan pengguna lain akan mengalami pertumbuhan lambat.
-
-### 6.2 Strategi Reply Engine
-- **Bukan Spammer Komentar**: Agen tidak mengejar jumlah balasan (bukan *"20 balasan per hari pasti aman"*), melainkan menargetkan **High-Relevance Replies**.
-- **Kriteria Pemilihan Utas untuk Dibalas**:
-  1. Topik mengandung kata kunci relevan: *desk setup, wfh routine, workspace, monitor arm, mechanical keyboard, cafe productivity*.
-  2. Utas memiliki aktivitas aktif (> 3 balasan dari kreator lain).
-  3. Persona Avery masuk memberikan sudut pandang bernilai tambah (*ADD_VALUE*), persetujuan berbobot (*AGREE*), atau bantahan elegan (*DISAGREE* dengan santun).
-  4. **Tanpa Link Afiliasi**: Komentar balasan ke postingan orang lain **HARAM** menyisipkan link jualan, kecuali orang tersebut secara eksplisit bertanya *"rekomendasi charger GaN yang bagus apa ya?"*.
-
----
-
-## 7. PRODUCT VAULT: KURASI TERFOKUS & VERIFIKASI KLAIM
-
-### 7.1 Pemangkasan Kategori ke Niche Inti
-Untuk menjaga otoritas dan kredibilitas persona Avery, kategori produk dalam Vault difokuskan murni pada ekosistem meja kerja dan WFH:
-- ✅ **Kategori Inti**:
-  - *Desk Setup & Organization*: Monitor arms, desk mats kulit/felt, cable management channels, pegboard accessories.
-  - *Minimalist Tech & Power*: GaN multiport chargers, compact magnetic power banks, high-speed braided cables, monitor screenbars.
-  - *Ergonomics & Posture*: Footrests, laptop risers, vertical mice, wrist rests.
-  - *WFH Coffee & Ambiance*: Insulated coffee tumblers, temperature mugs, minimalist ambient lamps.
-- ❌ **Kategori yang Dikeluarkan dari Vault Aktif**:
-  - Produk kecantikan / skincare (Dermalogica, Paula's Choice) ➔ Dialihkan ke sub-katalog dormant.
-  - Pakaian olahraga / athleisure umum (Gym People, CRZ Yoga) ➔ Tidak cocok dengan fokus utama meja kerja.
-
-### 7.2 Skema Data Produk dengan Fakta Terverifikasi (Provenance)
-Setiap produk dalam MongoDB diperkaya dengan struktur fakta:
-```typescript
-interface IProductProvenance {
-  visualFacts: string[];        // Ekstraksi AI Vision (matte finish, rounded edges, space gray)
-  merchantFacts: string[];      // Data listing resmi (65W output, 3 ports, 120 grams)
-  curatorTake: string;          // Sudut pandang estetika Avery
-  hasPhysicalReview: boolean;   // FALSE untuk AI (Mencegah klaim 'I used it for 3 weeks')
-}
-```
-
----
-
-## 8. ARSITEKTUR INFRASTRUKTUR DUA TAHAP & PEMANTAUAN TOKEN PROAKTIF
-
-### 8.1 Strategi Dua Tahap (Two-Stage Architecture)
-
-```
-[ TAHAP 1: BOOTSTRAPPING & VALIDASI (Bulan 1 - 2) ]
-- Biaya Operasional: $0 OPEX
-- Platform: Vercel Hobby + MongoDB Atlas M0 + Google Apps Script Cron
-- Fokus: Validasi konten, pengujian A/B link placement, pertumbuhan 500 followers pertama.
-- Kepatuhan: Tetap dalam batasan wajar non-komersial skala kecil.
-                     │
-                     ▼ (Setelah Menghasilkan Komisi Pertama & Membutuhkan Stabilitas)
-[ TAHAP 2: SKALASI KOMERSIAL RESMI (Bulan 3+) ]
-- Biaya Operasional: ~$5 - $20 / bulan (Self-Funded dari Komisi Afiliasi)
-- Platform Opsi A: Vercel Pro ($20/bln) dengan Native Cron Jobs & SLA Komersial resmi.
-- Platform Opsi B: VPS Ringan / Railway / Fly.io ($5/bln) dengan Node.js daemon mandiri.
-- Fokus: Skalasi tanpa batasan runtime dan bebas dari ketergantungan Google Apps Script.
-```
-
-### 8.2 Pembaruan Token Meta 60 Hari Secara Proaktif (Proactive Expiry Guard)
-Jangan menunggu token mati baru diperbarui. Sistem menerapkan mekanisme proaktif:
-```typescript
-// Pseudo-code Proactive Token Guard
-if (daysUntilExpiry < 14) {
-  const refreshResult = await refreshThreadsToken(currentToken);
-  if (refreshResult.success) {
-    await verifyTokenWithLiveApiCall(refreshResult.newToken);
-    await persistNewToken(refreshResult.newToken);
-    await sendNotification("✅ Meta Threads Token Proactively Refreshed for 60 Days.");
-  } else {
-    await triggerEmergencyAlert("⚠️ Token refresh failed! Immediate manual action required.");
-  }
-}
-```
-
----
-
-## 9. MATRIKS OTONOMI LEVEL 0 - 3 BERBASIS INDIKATOR KESEHATAN SISTEM
-
-Kenaikan tingkat otonomi **bukan sekadar hitungan hari**, melainkan pencapaian **System Health Check**:
-
-| Tingkat Otonomi | Status Operasional | Kriteria Promosi ke Level Berikutnya |
+| Level Otonomi | Peran Operasional | Karakteristik Eksekusi |
 |---|---|---|
-| **Level 0 (Advisory)** | Hanya simulasi dan riset ide konten | 20 draf lulus uji Quality Gate & Claim Verification |
-| **Level 1 (Semi-Autonomous)** | Draf dibuat otomatis, terbit hanya jika diklik Approve manusia | 30 postingan terbit sukses manual, 0 kegagalan API |
-| **Level 2 (Autonomous with Guardrails - Posisi Saat Ini)** | Postingan mandiri, jeda dinamis, eksperimen peletakan link terkontrol | **100+ postingan terbit tanpa teguran Meta, 0 klaim palsu, token refresh proaktif teruji, kill-switch berfungsi.** |
-| **Level 3 (Fully Autonomous Creator)** | Postingan + balasan interaksi komunitas terjawab otomatis | Akun mature, audiens aktif berdiskusi, sistem pemantau anomali bekerja 100% |
+| **Level 0: Advisory (Read-Only)** | Mode Riset & Observasi | Menghasilkan ide dan memantau topik tanpa memposting ke publik |
+| **Level 1: Semi-Autonomous** | Draf & Persetujuan Manual | Menulis draf ke menu `/activity`, menunggu tombol klik Approve manusia |
+| **Level 2: Autonomous with Guardrails (Posisi Aktif)** | Kreator Mandiri Terkendali | Memposting mandiri sesuai jadwal US ET, menjalankan A/B testing penempatan link, mematuhi kuota harian |
+| **Level 3: Fully Autonomous Creator** | Pengelola Komunitas Penuh | Memposting mandiri DAN membalas interaksi netizen masuk secara 100% otomatis dengan nada bersahabat |
 
 ---
 
-## 10. MODEL FINANSIAL NYATA BERBASIS CORONG KONVERSI
+## 9. JADWAL POSTING & SINKRONISASI PASAR KONSUMEN US
 
-### 10.1 Pembedahan Komisi Standar Amazon Associates (US)
-- Kategori *PC Components / Tech Electronics*: **2.5% - 3.0%**
-- Kategori *Home & Workspace Furniture*: **3.0%**
-- Kategori *Office Products*: **3.0%**
-- Rata-rata Keranjang Belanja (*Average Order Value - AOV*): **$45 - $60**
-
-### 10.2 Model Corong Nyata (Real Funnel Modeling)
-
-$$\text{Komisi Bulanan} = \text{Views} \times \text{CTR Profil/Link} \times \text{Sesi Afiliasi Berkualifikasi} \times \text{Purchase Rate} \times \text{AOV} \times \text{Tarif Komisi (3\%)}$$
-
-#### Proyeksi Berdasarkan Data Realistis:
-
-| Metrik Corong | Bulan 1 (Inkubasi) | Bulan 2 (Traksi) | Bulan 3 (Skalasi Penuh) |
-|---|---|---|---|
-| **Total Views / Tayangan Bulanan** | 25.000 | 80.000 | 250.000+ |
-| **Link Click-Through Rate (CTR)** | 1.5% (375 klik) | 2.2% (1.760 klik) | 2.8% (7.000 klik) |
-| **Tingkat Pembelian (Orders / Clicks)** | 4.0% (15 pesanan) | 5.0% (88 pesanan) | 6.0% (420 pesanan) |
-| **Rata-rata Nilai Pesanan (AOV)** | $45.00 | $50.00 | $52.00 |
-| **Total Gross Merchandise Value (GMV)**| $675 | $4.400 | $21.840 |
-| **Rata-rata Komisi Amazon (3.0%)** | **$20.25** | **$132.00** | **$655.20** |
-| **Biaya Hosting & API** | $0.00 (Tahap 1) | $0.00 (Tahap 1) | $20.00 (Vercel Pro - Tahap 2) |
-| **Laba Bersih Operasional** | **+$20.25** | **+$132.00** | **+$635.20** |
+- **Zona Waktu Acuan**: **US Eastern Time (`America/New_York`)**.
+- **Jendela Jam Posting Aktif**: Pukul **07:00 AM s.d. 11:00 PM ET**.
+- **Mode Tidur (Sleep Mode)**: Pukul **11:00 PM s.d. 07:00 AM ET** (Siang hari WIB). Agen berhenti memposting saat pasar Amerika sedang tidur.
+- **Frekuensi Aman**: Maksimal **6 s.d. 8 postingan per hari** dengan jeda acak dinamis 45 s.d. 90 menit antar postingan.
 
 ---
 
-## RINGKASAN TINDAKAN PENGEMBANGAN SEGERA (IMMEDIATE ACTION ITEMS)
-1. [x] **Pembaruan Bio Profil**: Pastikan bio Threads `@averyfoundit` memiliki teks resmi: *"As an Amazon Associate I earn from qualifying purchases."*
-2. [x] **Penyempurnaan Modul Kepatuhan**: Pastikan setiap link menyertakan `(paid link)` persis berdampingan dengan URL.
-3. [x] **Pembersihan Prompt Persona**: Pertegas aturan larangan klaim pemakaian fisik palsu pada [lib/prompts/personaPrompt.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/prompts/personaPrompt.ts).
-4. [x] **A/B Testing Link Placement**: Manfaatkan integrasi Meta Threads Insights API untuk mengukur kinerja tautan di root post vs di self-reply.
-5. [x] **Fokuskan Vault Produk**: Saring produk agar murni berfokus pada *desk setup*, ergonomi, dan *minimalist tech*.
+## 10. PROYEKSI & ROADMAP PENGEMBANGAN BERKELANJUTAN
+
+### 10.1 Proyeksi Konversi Realistis Amazon US (Komisi Rata-rata 3%)
+- **Model Corong**:
+  $$\text{Komisi} = \text{Views} \times \text{CTR (1.5\% - 2.5\%)} \times \text{Purchase Rate (4\% - 6\%)} \times \text{AOV (\$45)} \times \text{Komisi (3\%)} $$
+- **Estimasi Bertahap**:
+  - **Bulan 1 (Inkubasi)**: 25.000 Views ➔ ~$20 - $40 komisi (Memvalidasi ketertarikan audiens).
+  - **Bulan 2 (Pertumbuhan)**: 75.000 Views ➔ ~$100 - $250 komisi.
+  - **Bulan 3 (Skalasi)**: 200.000+ Views ➔ ~$400 - $800+ komisi pasif per bulan.
+- **Biaya Operasional**: **$0.00 / bulan tetap** (Keuntungan bersih 100%).
+
+---
+
+## RINGKASAN TINDAKAN OPERASIONAL
+1. **Persona**: Avery adalah orang biasa yang membagikan kisah harian santai dan temuan produk praktis apa saja.
+2. **Kategori Vault**: Bebas dan terbuka untuk seluruh barang fungsional (gadget, kenyamanan, pakaian santai, perawatan, aksesoris mobil).
+3. **Infrastruktur**: Sepenuhnya berjalan di atas arsitektur $0 OPEX (Vercel Hobby + MongoDB Atlas + Google Apps Script + Multi-Key AI).
+4. **Kepatuhan**: Menggunakan `(paid link)` di samping setiap link dan penyertaan kalimat resmi Amazon di bio profil.
