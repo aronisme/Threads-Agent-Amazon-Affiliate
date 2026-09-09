@@ -47,6 +47,31 @@ const PersonaSchema = new Schema(
   { _id: false }
 );
 
+const CredentialsSchema = new Schema(
+  {
+    userId: { type: String, default: '' },
+    accessToken: { type: String, default: '' },
+    appId: { type: String, default: '' },
+    appSecret: { type: String, default: '' },
+    tokenExpiresAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
+const AIConfigSchema = new Schema(
+  {
+    groqKeys: [{ type: String }],
+    groqModel: { type: String, default: 'llama-3.3-70b-versatile' },
+    mistralKeys: [{ type: String }],
+    mistralModel: { type: String, default: 'open-mistral-7b' },
+    xkiroKeys: [{ type: String }],
+    xkiroBaseUrl: { type: String, default: 'https://api.xkiro.com/v1' },
+    xkiroModel: { type: String, default: 'qwen/qwen3.8-max' },
+    preferredProvider: { type: String, enum: ['auto', 'mistral', 'groq', 'xkiro'], default: 'auto' },
+  },
+  { _id: false }
+);
+
 const AgentStateSchema = new Schema<AgentStateDocument>(
   {
     currentMood: {
@@ -55,6 +80,8 @@ const AgentStateSchema = new Schema<AgentStateDocument>(
       default: 'CURIOUS',
     },
     persona: { type: PersonaSchema, default: () => ({}) },
+    credentials: { type: CredentialsSchema, default: () => ({}) },
+    aiConfig: { type: AIConfigSchema, default: () => ({}) },
     recentTopics: [{ type: String }],
     recentHooks: [{ type: String }],
     recentPhrases: [{ type: String }],
@@ -72,7 +99,7 @@ const AgentStateSchema = new Schema<AgentStateDocument>(
       productMentionsCount: { type: Number, default: 0 },
     },
     autonomyLevel: { type: Number, default: 1, min: 0, max: 3 },
-    dryRunMode: { type: Boolean, default: true },
+    dryRunMode: { type: Boolean, default: false },
     commercialPressureScore: { type: Number, default: 0.0, min: 0.0, max: 1.0 },
     commercialBudget: {
       dailyLimit: { type: Number, default: 4.0 },

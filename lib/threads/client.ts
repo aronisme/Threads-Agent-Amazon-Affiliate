@@ -27,10 +27,10 @@ export class ThreadsClient {
   private accessToken: string;
   private isDryRun: boolean;
 
-  constructor(userId?: string, accessToken?: string, isDryRun: boolean = false) {
+  constructor(userId?: string, accessToken?: string, isDryRun?: boolean) {
     this.userId = userId || process.env.THREADS_USER_ID || '';
     this.accessToken = accessToken || process.env.THREADS_ACCESS_TOKEN || '';
-    this.isDryRun = isDryRun || process.env.DRY_RUN === 'true';
+    this.isDryRun = typeof isDryRun === 'boolean' ? isDryRun : process.env.DRY_RUN === 'true';
   }
 
   /**

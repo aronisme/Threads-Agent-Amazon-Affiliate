@@ -25,7 +25,9 @@ export class WorkerRunner {
   public async executeJob(job: JobDocument): Promise<{ success: boolean; result?: any; error?: string }> {
     await connectToDatabase();
     const state = await stateManager.getState();
-    const threadsClient = new ThreadsClient(undefined, undefined, state.dryRunMode);
+    const userId = state.credentials?.userId || state.threadsUserId || process.env.THREADS_USER_ID;
+    const accessToken = state.credentials?.accessToken || process.env.THREADS_ACCESS_TOKEN;
+    const threadsClient = new ThreadsClient(userId, accessToken, state.dryRunMode);
 
     switch (job.type) {
       case 'COMPOSE_POST':

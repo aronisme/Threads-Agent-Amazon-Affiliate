@@ -208,6 +208,25 @@ export interface IPersonaConfig {
   topicsToAvoid: string[];
 }
 
+export interface IThreadsCredentials {
+  userId?: string;
+  accessToken?: string;
+  appId?: string;
+  appSecret?: string;
+  tokenExpiresAt?: Date;
+}
+
+export interface IAICredentials {
+  groqKeys?: string[];
+  groqModel?: string;
+  mistralKeys?: string[];
+  mistralModel?: string;
+  xkiroKeys?: string[];
+  xkiroBaseUrl?: string;
+  xkiroModel?: string;
+  preferredProvider?: 'auto' | 'mistral' | 'groq' | 'xkiro';
+}
+
 export interface IAgentState {
   _id?: string;
   currentMood: AgentMood;
@@ -232,6 +251,8 @@ export interface IAgentState {
   dryRunMode: boolean;
   threadsUserId?: string;
   hasToken?: boolean;
+  credentials?: IThreadsCredentials;
+  aiConfig?: IAICredentials;
   commercialPressureScore?: number; // 0.0 to 1.0
   commercialBudget?: {
     dailyLimit: number;    // e.g. 2.5
@@ -247,3 +268,4 @@ export interface IAgentState {
   };
   updatedAt: Date;
 }
+

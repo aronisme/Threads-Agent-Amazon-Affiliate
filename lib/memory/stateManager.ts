@@ -38,6 +38,23 @@ let inMemoryState: any = {
   recentPhrases: [],
   recentProducts: [],
   peopleToFollowUp: [],
+  credentials: {
+    userId: process.env.THREADS_USER_ID || '',
+    accessToken: process.env.THREADS_ACCESS_TOKEN || '',
+    appId: process.env.THREADS_APP_ID || '',
+    appSecret: process.env.THREADS_APP_SECRET || '',
+    tokenExpiresAt: null,
+  },
+  aiConfig: {
+    groqKeys: (process.env.GROQ_API_KEYS || '').split(',').map((k) => k.trim()).filter(Boolean),
+    groqModel: process.env.GROQ_MODEL_PRIMARY || 'llama-3.3-70b-versatile',
+    mistralKeys: (process.env.MISTRAL_API_KEY || '').split(',').map((k) => k.trim()).filter(Boolean),
+    mistralModel: process.env.MISTRAL_MODEL || 'open-mistral-7b',
+    xkiroKeys: (process.env.XKIRO_API_KEY || '').split(',').map((k) => k.trim()).filter(Boolean),
+    xkiroBaseUrl: process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1',
+    xkiroModel: process.env.XKIRO_MODEL || 'qwen/qwen3.8-max',
+    preferredProvider: 'auto',
+  },
   cooldowns: {
     productMentionUntil: null,
     selfReplyUntil: null,
@@ -50,7 +67,7 @@ let inMemoryState: any = {
     productMentionsCount: 0,
   },
   autonomyLevel: 1,
-  dryRunMode: true,
+  dryRunMode: false,
   commercialPressureScore: 0.0,
   commercialBudget: {
     dailyLimit: 4.0,
@@ -87,6 +104,16 @@ export class StateManager {
     const todayStr = new Date().toISOString().split('T')[0];
     let needsSave = false;
 
+    if (!state.credentials) {
+      state.credentials = inMemoryState.credentials;
+      needsSave = true;
+    }
+
+    if (!state.aiConfig) {
+      state.aiConfig = inMemoryState.aiConfig;
+      needsSave = true;
+    }
+
     if (state.dailyActions.date !== todayStr) {
       state.dailyActions = {
         date: todayStr,
@@ -119,11 +146,33 @@ export class StateManager {
   }
 
   /**
+   * Reset daily post limits and cooldowns for immediate testing
+   */
+  public async resetDailyPosts(): Promise<any> {
+    const state = await this.getState();
+    state.dailyActions.postsCount = 0;
+    state.cooldowns.nextPostAllowedAt = null;
+    state.updatedAt = new Date();
+    if (typeof state.save === 'function') {
+      await state.save();
+    }
+    return state;
+  }
+
+  /**
    * Update full or partial agent state
    */
-  public async updateState(updates: Partial<IAgentState>): Promise<any> {
+  public async updateState(updates: Partial<IAgentState> | any): Promise<any> {
     const conn = await connectToDatabase();
     if (!conn) {
+      if (updates.credentials) {
+        inMemoryState.credentials = { ...inMemoryState.credentials, ...updates.credentials };
+        delete updates.credentials;
+      }
+      if (updates.aiConfig) {
+        inMemoryState.aiConfig = { ...inMemoryState.aiConfig, ...updates.aiConfig };
+        delete updates.aiConfig;
+      }
       Object.assign(inMemoryState, updates);
       inMemoryState.updatedAt = new Date();
       return inMemoryState;
@@ -132,6 +181,28 @@ export class StateManager {
     let state = await AgentState.findOne();
     if (!state) {
       state = await this.getState();
+    }
+
+    // Handle nested credentials updates
+    if (updates.credentials || updates.threadsUserId || updates.threadsAccessToken) {
+      state.credentials = {
+        ...(state.credentials?.toObject?.() || state.credentials || {}),
+        ...(updates.credentials || {}),
+        userId: updates.threadsUserId || updates.credentials?.userId || state.credentials?.userId || '',
+        accessToken: updates.threadsAccessToken || updates.credentials?.accessToken || state.credentials?.accessToken || '',
+      };
+      delete updates.credentials;
+      delete updates.threadsUserId;
+      delete updates.threadsAccessToken;
+    }
+
+    // Handle nested aiConfig updates
+    if (updates.aiConfig) {
+      state.aiConfig = {
+        ...(state.aiConfig?.toObject?.() || state.aiConfig || {}),
+        ...updates.aiConfig,
+      };
+      delete updates.aiConfig;
     }
 
     Object.assign(state, updates);
