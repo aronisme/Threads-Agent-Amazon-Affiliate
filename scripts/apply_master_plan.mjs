@@ -15,7 +15,7 @@ async function execute() {
     {},
     {
       $set: {
-        autonomyLevel: 2,
+        autonomyLevel: 3,
         dryRunMode: false,
         'persona.identityName': 'Avery',
         'persona.tagline': 'finding the little things that make everyday life, routines & coffee runs better ☕✨ As an Amazon Associate I earn from qualifying purchases.',
