@@ -222,6 +222,58 @@ export class ThreadsClient {
     const data = await res.json();
     return data;
   }
+
+  /**
+   * Fetch insights for a specific post (views, likes, replies, reposts, quotes)
+   */
+  public async getPostInsights(mediaId: string): Promise<Record<string, number> | null> {
+    if (this.isDryRun || !this.isConfigured()) {
+      return { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0 };
+    }
+
+    try {
+      const url = `${THREADS_API_BASE}/${mediaId}/insights?metric=views,likes,replies,reposts,quotes&access_token=${this.accessToken}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.data || !Array.isArray(data.data)) return null;
+
+      const result: Record<string, number> = {};
+      for (const item of data.data) {
+        const val = item.values?.[0]?.value ?? item.total_value?.value ?? 0;
+        result[item.name] = val;
+      }
+      return result;
+    } catch (err) {
+      console.error(`❌ Failed to fetch insights for media ${mediaId}:`, err);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch user-level account insights (views, likes, replies, reposts, quotes, followers_count)
+   */
+  public async getUserInsights(): Promise<Record<string, number> | null> {
+    if (this.isDryRun || !this.isConfigured() || !this.userId) {
+      return { views: 0, likes: 0, replies: 0, reposts: 0, quotes: 0, followers_count: 0 };
+    }
+
+    try {
+      const url = `${THREADS_API_BASE}/${this.userId}/threads_insights?metric=views,likes,replies,reposts,quotes,followers_count&access_token=${this.accessToken}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.data || !Array.isArray(data.data)) return null;
+
+      const result: Record<string, number> = {};
+      for (const item of data.data) {
+        const val = item.total_value?.value ?? item.values?.[item.values.length - 1]?.value ?? 0;
+        result[item.name] = val;
+      }
+      return result;
+    } catch (err) {
+      console.error(`❌ Failed to fetch user insights for ${this.userId}:`, err);
+      return null;
+    }
+  }
 }
 
 export default ThreadsClient;
