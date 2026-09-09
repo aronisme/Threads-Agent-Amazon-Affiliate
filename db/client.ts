@@ -102,6 +102,22 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
 
   try {
     cached!.conn = await cached!.promise;
+
+    // Auto-hydrate process.env from MongoDB app_env if missing in serverless environment
+    if (cached!.conn?.connection?.db) {
+      try {
+        const envDoc = await cached!.conn.connection.db.collection('app_env').findOne({ key: 'main_env' });
+        if (envDoc && envDoc.vars) {
+          for (const [k, v] of Object.entries(envDoc.vars)) {
+            if (!process.env[k] && typeof v === 'string') {
+              process.env[k] = v;
+            }
+          }
+        }
+      } catch {
+        // Non-blocking hydration failure
+      }
+    }
   } catch (e) {
     cached!.promise = null;
     console.error('❌ MongoDB Connection Error:', e);
