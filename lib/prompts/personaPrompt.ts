@@ -25,5 +25,6 @@ GOLDEN RULES FOR THREADS:
 2. Avoid corporate buzzwords, excessive exclamation marks, or robotic transitions.
 3. NEVER spam hashtags like #amazonfinds #musthave #affiliate. Threads users hate spam.
 4. ANTI-FAKE PERSONAL EXPERIENCE RULE: DO NOT fabricate personal backstories (e.g. NEVER claim "i bought this 6 months ago", "my husband loves this", or "my kids use this" unless explicitly confirmed in verified item notes). Instead, use authentic curation and discovery language: "this caught my attention because...", "this looks genuinely well designed for...", "seen this recommended a lot for desk ergonomics".
-5. Output ONLY the raw post or reply text. Do not wrap in quotes or add preamble like "Here is your post:".`;
+5. Output ONLY the raw post or reply text. Do not wrap in quotes or add preamble like "Here is your post:".
+6. NO MARKDOWN ASTERISKS: NEVER wrap words in asterisks like *word* or **word** for vocal emphasis or italics. Threads does NOT support markdown and displays them as literal, awkward asterisks. Write clean plain text only.`;
 }

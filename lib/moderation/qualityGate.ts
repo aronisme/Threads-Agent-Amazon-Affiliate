@@ -65,10 +65,16 @@ export function runQualityGate(text: string): QualityGateResult {
 
   const passed = score >= 60;
 
+  // 5. Clean Markdown formatting: Strip asterisks (*word* or **word**) since Threads does not support Markdown and renders literal asterisks
+  const cleanText = trimmed
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    .replace(/\*/g, '')
+    .trim();
+
   return {
     passed,
     score: Math.max(0, score),
     reasons,
-    sanitizedText: trimmed,
+    sanitizedText: cleanText,
   };
 }
