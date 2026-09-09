@@ -107,15 +107,16 @@ export class WorkerRunner {
     let attachedVideoUrl: string | undefined = undefined;
 
     if (targetProduct && postType === 'CONTEXTUAL_PRODUCT') {
-      const primaryImage =
+      const primaryMedia =
+        targetProduct.videoUrl ||
         (Array.isArray(targetProduct.images) && targetProduct.images.length > 0 ? targetProduct.images[0] : null) ||
         targetProduct.imageUrl;
 
-      if (primaryImage && (!targetProduct.visualContext || !targetProduct.visualContext.aestheticStyle)) {
+      if (primaryMedia && (!targetProduct.visualContext || !targetProduct.visualContext.aestheticStyle)) {
         try {
-          console.info(`👁️ Learning product visuals for "${targetProduct.name}" across Groq/xKiro/Mistral Vision APIs...`);
+          console.info(`👁️ Learning product visuals for "${targetProduct.name}" across Vision APIs...`);
           const visionData = await visionRotator.analyzeProductImage({
-            imageUrl: primaryImage,
+            imageUrl: primaryMedia,
             productName: targetProduct.name,
             category: targetProduct.category,
             notes: targetProduct.notes,

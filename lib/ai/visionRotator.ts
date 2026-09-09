@@ -68,11 +68,125 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
   "summaryDescription": "string"
 }`;
 
-    // Resolve image to base64 Data URL to bypass third-party/Amazon bot-blocking
-    const imagePayloadUrl = await this.resolveImagePayload(imageUrl);
+    // Detect if input is a video (e.g. Cloudinary MP4)
+    const isVideo = imageUrl.endsWith('.mp4') || imageUrl.includes('/video/upload/');
+    let frameUrls: string[] = [];
+
+    if (isVideo && imageUrl.includes('/upload/')) {
+      // Extract high-res sequential frame snapshots from Cloudinary video
+      frameUrls = [
+        imageUrl.replace(/\/upload\//i, '/upload/so_1/').replace(/\.mp4$/i, '.jpg'),
+        imageUrl.replace(/\/upload\//i, '/upload/so_3/').replace(/\.mp4$/i, '.jpg'),
+      ];
+    } else {
+      frameUrls = [imageUrl];
+    }
 
     // =========================================================================
-    // TIER 1: GROQ VISION (qwen/qwen3.8-27b / qwen/qwen3.6-27b LPU)
+    // TIER 1: MISTRAL AI PIXTRAL (pixtral-12b-2409 - Native Multi-Frame Vision)
+    // =========================================================================
+    const mistralKey = process.env.MISTRAL_API_KEY;
+    if (mistralKey) {
+      try {
+        const model = process.env.MISTRAL_VISION_MODEL || 'pixtral-12b-2409';
+        const userContent: any[] = [{ type: 'text', text: visionPrompt }];
+
+        for (const frame of frameUrls) {
+          userContent.push({ type: 'image_url', image_url: frame });
+        }
+
+        const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${mistralKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: userContent }],
+            temperature: 0.3,
+            max_tokens: 500,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const content = data.choices?.[0]?.message?.content?.trim() || '';
+          const parsed = this.parseVisionJSON(content);
+          if (parsed) {
+            return {
+              ...parsed,
+              provider: 'mistral',
+              modelUsed: model,
+              analyzedAt: new Date(),
+            };
+          }
+        } else {
+          const errText = await res.text();
+          console.warn(`⚠️ Mistral Pixtral failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
+        }
+      } catch (err) {
+        console.warn('⚠️ Mistral Vision exception:', err);
+      }
+    }
+
+    // Resolve primary image to base64 Data URL to bypass third-party bot-blocking
+    const imagePayloadUrl = await this.resolveImagePayload(frameUrls[0] || imageUrl);
+
+    // =========================================================================
+    // TIER 2: XKiro AI VISION (Qwen Vision/VL OpenAI-Compatible endpoint)
+    // =========================================================================
+    const xkiroKey = process.env.XKIRO_API_KEY?.split(',')[0]?.trim();
+    if (xkiroKey) {
+      try {
+        const xkiroBaseUrl = process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1';
+        const model = process.env.XKIRO_VISION_MODEL || 'qwen/qwen3-vl-plus:free';
+
+        const res = await fetch(`${xkiroBaseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${xkiroKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: visionPrompt },
+                  { type: 'image_url', image_url: { url: imagePayloadUrl } },
+                ],
+              },
+            ],
+            temperature: 0.3,
+            max_tokens: 500,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const content = data.choices?.[0]?.message?.content?.trim() || '';
+          const parsed = this.parseVisionJSON(content);
+          if (parsed) {
+            return {
+              ...parsed,
+              provider: 'xkiro',
+              modelUsed: model,
+              analyzedAt: new Date(),
+            };
+          }
+        } else {
+          const errText = await res.text();
+          console.warn(`⚠️ xKiro Vision failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
+        }
+      } catch (err) {
+        console.warn('⚠️ xKiro Vision exception:', err);
+      }
+    }
+
+    // =========================================================================
+    // TIER 3: GROQ VISION (qwen / llama vision LPU)
     // =========================================================================
     this.reloadGroqKeys();
     if (this.groqKeys.length > 0) {
@@ -82,7 +196,7 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
         if (!apiKey) break;
 
         try {
-          const model = process.env.GROQ_VISION_MODEL || process.env.GROQ_MODEL_PRIMARY || 'qwen/qwen3.8-27b';
+          const model = process.env.GROQ_VISION_MODEL || 'llama-3.2-11b-vision-preview';
           const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -133,115 +247,13 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
     }
 
     // =========================================================================
-    // TIER 2: XKiro AI VISION (Qwen Vision/VL OpenAI-Compatible endpoint)
-    // =========================================================================
-    const xkiroKey = process.env.XKIRO_API_KEY;
-    if (xkiroKey) {
-      try {
-        const xkiroBaseUrl = process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1';
-        const model = process.env.XKIRO_VISION_MODEL || process.env.XKIRO_MODEL || 'qwen/qwen3.8-max';
-
-        const res = await fetch(`${xkiroBaseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${xkiroKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: visionPrompt },
-                  { type: 'image_url', image_url: { url: imagePayloadUrl } },
-                ],
-              },
-            ],
-            temperature: 0.3,
-            max_tokens: 500,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const content = data.choices?.[0]?.message?.content?.trim() || '';
-          const parsed = this.parseVisionJSON(content);
-          if (parsed) {
-            return {
-              ...parsed,
-              provider: 'xkiro',
-              modelUsed: model,
-              analyzedAt: new Date(),
-            };
-          }
-        } else {
-          const errText = await res.text();
-          console.warn(`⚠️ xKiro Vision failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
-        }
-      } catch (err) {
-        console.warn('⚠️ xKiro Vision exception:', err);
-      }
-    }
-
-    // =========================================================================
-    // TIER 3: MISTRAL AI PIXTRAL (pixtral-12b-2409)
-    // =========================================================================
-    const mistralKey = process.env.MISTRAL_API_KEY;
-    if (mistralKey) {
-      try {
-        const model = process.env.MISTRAL_VISION_MODEL || 'pixtral-12b-2409';
-        const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${mistralKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: visionPrompt },
-                  { type: 'image_url', image_url: { url: imagePayloadUrl } },
-                ],
-              },
-            ],
-            temperature: 0.3,
-            max_tokens: 500,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const content = data.choices?.[0]?.message?.content?.trim() || '';
-          const parsed = this.parseVisionJSON(content);
-          if (parsed) {
-            return {
-              ...parsed,
-              provider: 'mistral',
-              modelUsed: model,
-              analyzedAt: new Date(),
-            };
-          }
-        } else {
-          const errText = await res.text();
-          console.warn(`⚠️ Mistral Pixtral failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
-        }
-      } catch (err) {
-        console.warn('⚠️ Mistral Vision exception:', err);
-      }
-    }
-
-    // =========================================================================
     // TIER 4: HEURISTIC / CONTEXTUAL FALLBACK
     // =========================================================================
     return this.generateHeuristicFallback(
       productName,
       category,
       notes,
-      'All 3 external vision APIs were unavailable or rate-limited'
+      'All external vision APIs were unavailable or rate-limited'
     );
   }
 
