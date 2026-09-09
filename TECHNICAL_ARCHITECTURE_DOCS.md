@@ -383,9 +383,13 @@ Sesuai dokumentasi Meta, token 60 hari dapat diperpanjang tanpa login ulang jika
 ```
 GET https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token={token}
 ```
-Fungsi `refreshThreadsToken()` di [lib/threads/tokens.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/threads/tokens.ts) telah siap dipanggil secara terjadwal untuk menjaga akses akun tetap aktif selamanya.
+### 7.4 Integrasi Meta Threads Insights & Analitik Real-Time
+Sistem terhubung langsung ke endpoint resmi Meta Threads Insights:
+1. **Metrik Postingan (`/{mediaId}/insights`)**: Mengambil data `views`, `likes`, `replies`, `reposts`, `quotes` secara per-postingan.
+2. **Metrik Tingkat Profil (`/{userId}/threads_insights`)**: Mengambil data `views` harian, total `followers_count`, dan total interaksi akun.
+Fungsi `getPostInsights()` dan `getUserInsights()` pada [lib/threads/client.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/threads/client.ts) melayani endpoint internal `/api/threads/insights`.
 
-### 7.4 Simulasi Dry-Run Mode
+### 7.5 Simulasi Dry-Run Mode
 Jika `DRY_RUN=true` atau kredensial Threads belum terkonfigurasi:
 - `ThreadsClient` tidak melakukan panggilan HTTP ke Meta.
 - Menghasilkan ID acak simulasi: `mock_threads_{timestamp}_{hash}`.
@@ -413,6 +417,7 @@ Semua rute backend menggunakan **Next.js 14 App Router Route Handlers**:
 | `/api/products/ingest`| `POST/OPTIONS`| Endpoint khusus ingest dari Chrome Extension dengan auto-rehost Cloudinary & CORS preflight | Headers: `x-api-key: <CRON_SECRET>`, Body: `AmazonProductExportPayload` |
 | `/api/state` | `GET` | Mengambil konfigurasi status agen, persona saat ini, mood, statistik harian, dan status token | - |
 | `/api/state` | `PUT` | Memperbarui konfigurasi status agen, slider persona, autonomy level, atau kredensial | JSON: Parsial update dari `IAgentState` |
+| `/api/threads/insights` | `GET` | Mengambil metrik analitik asli Meta Threads (views, likes, replies, followers) | Query opsional: `?mediaId=...` |
 | `/api/threads/test-connection` | `POST` | Menguji validitas token akses dan User ID langsung ke endpoint Meta `/me` | JSON: `{ userId?: string, accessToken?: string }` |
 | `/api/auth/threads` | `GET` | Redirect ke halaman otorisasi OAuth Meta Threads resmi | - |
 | `/api/auth/threads/callback` | `GET` | Callback OAuth penukaran authorization code menjadi long-lived access token | Query: `?code=...` |

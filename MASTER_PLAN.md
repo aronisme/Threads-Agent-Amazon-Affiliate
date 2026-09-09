@@ -179,8 +179,8 @@ Sistem mendukung 4 tingkatan otonomi yang dapat diatur melalui dashboard `/setti
 |---|---|---|
 | **Level 0: Advisory (Read-Only)** | Mode Riset & Observasi | Menghasilkan ide dan memantau topik tanpa memposting ke publik |
 | **Level 1: Semi-Autonomous** | Draf & Persetujuan Manual | Menulis draf ke menu `/activity`, menunggu tombol klik Approve manusia |
-| **Level 2: Autonomous with Guardrails (Posisi Aktif)** | Kreator Mandiri Terkendali | Memposting mandiri sesuai jadwal US ET, menjalankan A/B testing penempatan link, mematuhi kuota harian |
-| **Level 3: Fully Autonomous Creator** | Pengelola Komunitas Penuh | Memposting mandiri DAN membalas interaksi netizen masuk secara 100% otomatis dengan nada bersahabat |
+| **Level 2: Autonomous with Guardrails** | Kreator Mandiri Terkendali | Memposting mandiri sesuai jadwal US ET, menjalankan A/B testing penempatan link, mematuhi kuota harian |
+| **Level 3: Fully Autonomous Creator (Status Aktif Saat Ini)** | Pengelola Komunitas Penuh | Memposting mandiri (prioritas 65% video reel) DAN membalas interaksi netizen masuk serta pertanyaan produk secara 100% otomatis |
 
 ---
 
@@ -207,7 +207,9 @@ Sistem mendukung 4 tingkatan otonomi yang dapat diatur melalui dashboard `/setti
 ---
 
 ## RINGKASAN TINDAKAN OPERASIONAL
-1. **Persona**: Avery adalah orang biasa yang membagikan kisah harian santai dan temuan produk praktis apa saja.
-2. **Kategori Vault**: Bebas dan terbuka untuk seluruh barang fungsional (gadget, kenyamanan, pakaian santai, perawatan, aksesoris mobil).
-3. **Infrastruktur**: Sepenuhnya berjalan di atas arsitektur $0 OPEX (Vercel Hobby + MongoDB Atlas + Google Apps Script + Multi-Key AI).
-4. **Kepatuhan**: Menggunakan `(paid link)` di samping setiap link dan penyertaan kalimat resmi Amazon di bio profil.
+1. **Status Autonomy**: Resmi aktif di **Level 3 (Fully Autonomous Creator)** dengan mode live aktif.
+2. **Prioritas Video (65%)**: Format video MP4 dari Cloudinary diutamakan untuk menghentikan *scroll* penonton dan meningkatkan tayangan. Terverifikasi live di Threads: `https://www.threads.net/@averyfoundit/post/18008288678770507`.
+3. **Inbound Intent Harvesting**: Agen membalas otomatis komentar netizen yang bertanya tentang produk dengan menyematkan link Amazon + label `(paid link)`.
+4. **Integrasi Analitik Meta Threads**: Endpoint `/api/threads/insights` aktif membaca metrik asli views, likes, replies, dan followers.
+5. **Kategori Vault**: Bebas dan terbuka untuk seluruh barang fungsional (gadget, kenyamanan, pakaian santai, perawatan, aksesoris mobil).
+6. **Infrastruktur**: Sepenuhnya berjalan di atas arsitektur $0 OPEX permanen (Vercel Hobby + MongoDB Atlas + Google Apps Script + Multi-Key Free AI).

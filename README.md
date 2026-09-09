@@ -7,27 +7,31 @@
 
 ## 🌟 Key Features
 
+- **Level 3 Fully Autonomous Creator**:
+  - Independent posting, automatic delayed contextual self-replies, and 100% automated community conversation replies with inbound commercial intent harvesting.
 - **Dual-Engine Architecture**:
-  - **Social Engine**: Decides organic posting, conversations, questions, and natural engagement cadence independently of products.
+  - **Social Engine**: Decides organic posting, everyday conversations, questions, and natural engagement cadence independently of products.
   - **Affiliate Engine**: Evaluates commercial intent score (0.0 to 1.0) and product relevance. Only introduces products when contextually natural.
-- **Stealth Soft-Sell Funnel**:
-  - Top-level posts remain 100% organic and free of external links to maximize algorithmic reach on Threads.
-  - Delayed self-reply comment (2-minute delay) casually drops the Amazon link for interested readers.
+- **High-Engagement Video Reel Priority (65%)**:
+  - Media Decision Engine prioritizes Cloudinary MP4 video reels (65%) over photos and text to maximize scroll-stop attention on Threads.
+  - Implements Least Recently Used (LRU) asset rotation to eliminate visual fatigue.
+- **Native Meta Threads Insights API Integration**:
+  - Direct live integration with Meta Graph API Insights reading real-time views, likes, replies, reposts, and follower counts via `/api/threads/insights`.
+- **Contextual Disclosure Funnel**:
+  - Top-level posts remain clean and focused on organic storytelling.
+  - Delayed self-reply (2-minute delay) and inbound comment replies casually drop the Amazon link with compliant FTC disclosures.
 - **Commercial Pressure & Budget Control**:
   - Daily weighted budget cap (Direct link: 1.0, Soft recommendation: 0.4, Mention: 0.15).
   - Dynamic cooldowns preventing feed spam and maintaining high authentic creator reputation.
-- **FTC & Amazon Associates Compliance**:
-  - Programmatic disclosure injection (`(paid link)`) whenever affiliate links are rendered.
-  - Anti-fake personal experience guardrails (curator/discovery voice).
-- **Vercel Free Tier & GAS Optimization**:
-  - Engineered for zero-cost operation on Vercel Hobby plan.
+- **FTC & Amazon Associates Dual-Layer Compliance**:
+  - Account-level disclosure in profile bio: *"As an Amazon Associate I earn from qualifying purchases."*
+  - Programmatic link-level disclosure injection (`(paid link)`) whenever affiliate links are rendered.
+  - Strict anti-fake personal experience guardrails (curator/discovery voice).
+- **Permanent $0 OPEX Architecture & GAS Optimization**:
+  - Engineered for permanent zero-cost operation on Vercel Hobby + MongoDB Atlas Free Tier.
   - Fast-exit execution (`< 50ms`) for idle 5-minute cron pings from Google Apps Script.
-- **Multi-Key Groq LPU Engine**:
-  - Round-robin key rotation across `GROQ_API_KEYS` with auto-failover on rate limits (HTTP 429).
-  - Sub-second inference latency (< 1s).
-- **Media Decision Engine & Anti-Bot Cadence**:
-  - Distributes media posts organically: 45% single photo, 20% single short video (MP4), 35% text-only.
-  - Avoids spammy multi-image dumps. Implements Least Recently Used (LRU) asset rotation to eliminate visual fatigue.
+- **Multi-Tier AI Engine with Failover**:
+  - Multi-Key Groq Cloud LPU + Mistral 7B + xKiro API failover with round-robin key rotation and sub-second latency.
 - **Chrome Extension Product Scraper Ingest**:
   - Direct authenticated endpoint (`/api/products/ingest`) with full CORS preflight support.
   - Automatically receives rich Amazon product metadata (ASIN, title, price, discount, rating, bullet points, media).
