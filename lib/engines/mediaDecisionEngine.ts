@@ -63,22 +63,23 @@ export class MediaDecisionEngine {
     let chosenFormat: SelectedMediaFormat = 'TEXT';
 
     if (hasImages && hasVideos) {
-      if (roll < 0.50) {
-        chosenFormat = 'IMAGE';
-      } else if (roll < 0.70) {
-        chosenFormat = 'VIDEO';
-      } else {
-        chosenFormat = 'TEXT';
-      }
-    } else if (hasImages) {
+      // Prioritize high-engagement video reels (65%) to maximize scroll-stop attention
       if (roll < 0.65) {
+        chosenFormat = 'VIDEO';
+      } else if (roll < 0.85) {
         chosenFormat = 'IMAGE';
       } else {
         chosenFormat = 'TEXT';
       }
     } else if (hasVideos) {
-      if (roll < 0.45) {
+      if (roll < 0.75) {
         chosenFormat = 'VIDEO';
+      } else {
+        chosenFormat = 'TEXT';
+      }
+    } else if (hasImages) {
+      if (roll < 0.70) {
+        chosenFormat = 'IMAGE';
       } else {
         chosenFormat = 'TEXT';
       }
