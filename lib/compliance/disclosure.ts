@@ -11,19 +11,19 @@ export interface ComplianceResult {
 }
 
 const DISCLOSURE_PATTERNS = [
+  /#ad\b/i,
   /\(paid link\)/i,
   /\(commission earned\)/i,
   /\(ad\)/i,
-  /#ad\b/i,
   /#sponsored\b/i,
   /#affiliate\b/i,
 ];
 
 /**
  * Ensures text containing an affiliate link carries compliant disclosure.
- * Amazon Associates Operating Agreement mandates clear disclosure (e.g. "(paid link)").
+ * FTC & Amazon Associates allow standard hashtag '#ad' on social media platforms.
  */
-export function enforceDisclosure(text: string, isAffiliate: boolean = false): ComplianceResult {
+export function enforceDisclosure(text: string, isAffiliate: boolean = false, customTag: string = '#ad'): ComplianceResult {
   if (!isAffiliate) {
     return { text, hasDisclosure: false, disclosureTag: '' };
   }
@@ -34,8 +34,8 @@ export function enforceDisclosure(text: string, isAffiliate: boolean = false): C
     return { text, hasDisclosure: true, disclosureTag: 'EXISTING' };
   }
 
-  // Programmatically append standard compliant disclosure
-  const disclosureTag = '(paid link)';
+  // Programmatically append standard compliant disclosure (#ad)
+  const disclosureTag = customTag || '#ad';
   const trimmed = text.trim();
   const compliantText = `${trimmed} ${disclosureTag}`;
 

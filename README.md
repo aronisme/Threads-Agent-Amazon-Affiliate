@@ -25,7 +25,7 @@
   - Dynamic cooldowns preventing feed spam and maintaining high authentic creator reputation.
 - **FTC & Amazon Associates Dual-Layer Compliance**:
   - Account-level disclosure in profile bio: *"As an Amazon Associate I earn from qualifying purchases."*
-  - Programmatic link-level disclosure injection (`(paid link)`) whenever affiliate links are rendered.
+  - Programmatic link-level disclosure injection (`#ad`) whenever affiliate links are rendered.
   - Strict anti-fake personal experience guardrails (curator/discovery voice).
 - **Permanent $0 OPEX Architecture & GAS Optimization**:
   - Engineered for permanent zero-cost operation on Vercel Hobby + MongoDB Atlas Free Tier.

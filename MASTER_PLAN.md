@@ -163,11 +163,11 @@ Bio Akun Threads:
                      │
                      ▼
 [ KEPATUHAN TINGKAT LINK ]
-Setiap URL amzn.to wajib disertai label pengungkapan langsung:
-"https://amzn.to/3Uw9Uyx (paid link)"
+Setiap URL amzn.to wajib disertai label pengungkapan langsung (standar FTC media sosial):
+"https://amzn.to/3Uw9Uyx #ad"
 ```
 
-- Modul [lib/compliance/disclosure.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/compliance/disclosure.ts) secara otomatis menyematkan `(paid link)` persis di samping URL setiap kali tautan afiliasi dicetak.
+- Modul [lib/compliance/disclosure.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/compliance/disclosure.ts) secara otomatis menyematkan `#ad` persis di samping URL setiap kali tautan afiliasi dicetak.
 
 ---
 
@@ -209,7 +209,7 @@ Sistem mendukung 4 tingkatan otonomi yang dapat diatur melalui dashboard `/setti
 ## RINGKASAN TINDAKAN OPERASIONAL
 1. **Status Autonomy**: Resmi aktif di **Level 3 (Fully Autonomous Creator)** dengan mode live aktif.
 2. **Prioritas Video (65%)**: Format video MP4 dari Cloudinary diutamakan untuk menghentikan *scroll* penonton dan meningkatkan tayangan. Terverifikasi live di Threads: `https://www.threads.net/@averyfoundit/post/18008288678770507`.
-3. **Inbound Intent Harvesting**: Agen membalas otomatis komentar netizen yang bertanya tentang produk dengan menyematkan link Amazon + label `(paid link)`.
+3. **Inbound Intent Harvesting**: Agen membalas otomatis komentar netizen yang bertanya tentang produk dengan menyematkan link Amazon + label `#ad`.
 4. **Integrasi Analitik Meta Threads**: Endpoint `/api/threads/insights` aktif membaca metrik asli views, likes, replies, dan followers.
 5. **Kategori Vault**: Bebas dan terbuka untuk seluruh barang fungsional (gadget, kenyamanan, pakaian santai, perawatan, aksesoris mobil).
 6. **Infrastruktur**: Sepenuhnya berjalan di atas arsitektur $0 OPEX permanen (Vercel Hobby + MongoDB Atlas + Google Apps Script + Multi-Key Free AI).
