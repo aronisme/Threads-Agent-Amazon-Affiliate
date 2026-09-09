@@ -29,10 +29,11 @@ export function buildReplyPrompt(
 
   let productInstruction = '';
   if (relevantProduct && affiliateMode === 'DIRECT_LINK') {
-    productInstruction = `\nCOMMERCIAL CONTEXT (DIRECT RECOMMENDATION REQUESTED):
-User is looking for a solution. Recommend: "${relevantProduct.name}" (${relevantProduct.notes || 'reliable tool'}).
-Include the Amazon link (${relevantProduct.affiliateUrl}).
-Tone: Helpful, objective, casual. (e.g. "i think you're looking for something like this: ${relevantProduct.affiliateUrl}").`;
+    productInstruction = `\nCOMMERCIAL CONTEXT (DIRECT RECOMMENDATION / LINK REQUESTED):
+The user is asking where to find it or asking for a recommendation.
+Product: "${relevantProduct.name}" (${relevantProduct.notes || 'reliable tool'}).
+Amazon link: ${relevantProduct.affiliateUrl}
+Instruction: Answer casually and helpfully. Include the exact Amazon link provided above. (e.g. "got it on amazon here: ${relevantProduct.affiliateUrl}" or "found it on amazon! here's the link: ${relevantProduct.affiliateUrl}").`;
   } else if (relevantProduct && affiliateMode === 'SOFT_RECOMMENDATION') {
     productInstruction = `\nCOMMERCIAL CONTEXT (SOFT RECOMMENDATION):
 User mentions a problem related to "${relevantProduct.category}".

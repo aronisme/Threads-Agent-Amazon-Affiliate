@@ -322,6 +322,17 @@ export class WorkerRunner {
       const conversationReplies = await threadsClient.getConversation(post.threadsId);
 
       for (const reply of conversationReplies) {
+        // Don't reply to our own account
+        if (reply.username && state.threadsUsername && reply.username.toLowerCase() === state.threadsUsername.toLowerCase()) {
+          continue;
+        }
+
+        // Check if we already created a reply post or already enqueued for this comment
+        const alreadyReplied = await Post.findOne({ parentId: reply.id });
+        if (alreadyReplied) {
+          continue;
+        }
+
         // Enqueue individual reply handling
         await jobQueue.enqueue('GENERATE_REPLY', {
           parentPostId: post._id.toString(),
@@ -343,15 +354,34 @@ export class WorkerRunner {
     const { replyToId, authorUsername, text: incomingText, parentPostId } = job.payload;
     if (!incomingText) return { success: false, error: 'No incoming text provided' };
 
-    // Choose reply class: AGREE, DISAGREE, ADD_VALUE, PLAYFUL
-    const classes: ReplyClass[] = ['AGREE', 'DISAGREE', 'ADD_VALUE', 'PLAYFUL'];
-    const selectedClass = classes[Math.floor(Math.random() * classes.length)];
-
     // Evaluate commercial intent and context using AffiliateEngine
     const conn = await connectToDatabase();
-    const evalResult = await affiliateEngine.evaluate(incomingText, state);
-    const relevantProduct = evalResult.matchedProduct;
+    let parentProduct: any = null;
+    let fullContext = incomingText;
+
+    if (parentPostId && conn) {
+      try {
+        const parentPost = await Post.findById(parentPostId).populate('productId');
+        if (parentPost) {
+          fullContext = `Parent Post: "${parentPost.text}"\nInbound Comment: "${incomingText}"`;
+          if (parentPost.productId) {
+            parentProduct = parentPost.productId;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not populate parentPost for reply context:', err);
+      }
+    }
+
+    const evalResult = await affiliateEngine.evaluate(fullContext, state, parentProduct);
+    const relevantProduct = evalResult.matchedProduct || parentProduct;
     const affiliateMode: AffiliateMode = evalResult.affiliateMode;
+
+    // Choose reply class: if direct link requested, choose ADD_VALUE to directly answer
+    const classes: ReplyClass[] = affiliateMode === 'DIRECT_LINK' 
+      ? ['ADD_VALUE'] 
+      : ['AGREE', 'DISAGREE', 'ADD_VALUE', 'PLAYFUL'];
+    const selectedClass = classes[Math.floor(Math.random() * classes.length)];
 
     const sysPrompt = buildSystemPrompt(state.persona, state.currentMood);
     const userPrompt = buildReplyPrompt(selectedClass, incomingText, authorUsername || 'someone', relevantProduct, affiliateMode);

@@ -12,7 +12,7 @@ export interface CommercialEvaluation {
 
 // Regex patterns for detecting explicit commercial intent
 const HIGH_INTENT_PATTERNS = [
-  /where\s+(can\s+i|did\s+you|to)\s+(get|buy|find)\b/i,
+  /where\s+(?:can\s+i|did\s+you|you\s+did|you|d\s+you|to)?\s*(?:get|buy|find|found|got|cop)\b/i,
   /amazon\s+link\b/i,
   /what\s+(is\s+the\s+link|link|brand|model|product)\b/i,
   /which\s+(one|brand|model)\b/i,
@@ -21,6 +21,7 @@ const HIGH_INTENT_PATTERNS = [
   /recommend\s+(me|a|any)\b/i,
   /what\s+(do\s+you\s+use|are\s+you\s+using)\b/i,
   /send\s+link\b/i,
+  /w2c\b/i,
 ];
 
 const MEDIUM_INTENT_PATTERNS = [
@@ -162,9 +163,16 @@ export class AffiliateEngine {
   /**
    * Complete commercial decision pipeline
    */
-  public async evaluate(contextText: string, state: IAgentState): Promise<CommercialEvaluation> {
+  public async evaluate(contextText: string, state: IAgentState, explicitProduct?: any): Promise<CommercialEvaluation> {
     const intentScore = this.evaluateCommercialIntent(contextText);
-    const { product, relevanceScore } = await this.findBestProduct(contextText, state);
+    let product = explicitProduct || null;
+    let relevanceScore = explicitProduct ? 0.95 : 0.0;
+
+    if (!product) {
+      const best = await this.findBestProduct(contextText, state);
+      product = best.product;
+      relevanceScore = best.relevanceScore;
+    }
 
     // Check Commercial Pressure & Daily Budget
     const pressureScore = state.commercialPressureScore || 0;
