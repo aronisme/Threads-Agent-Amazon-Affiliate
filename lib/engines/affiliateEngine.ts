@@ -201,12 +201,12 @@ export class AffiliateEngine {
     } else if (intentScore >= 0.4 && relevanceScore >= 0.4) {
       affiliateMode = 'SOFT_RECOMMENDATION';
       reason = `Moderate commercial intent (${intentScore}). Soft recommendation appropriate.`;
-    } else if (relevanceScore >= 0.6) {
+    } else if (relevanceScore >= 0.6 && intentScore >= 0.3) {
       affiliateMode = 'MENTION_ONLY';
-      reason = `Low commercial intent (${intentScore}) but high topical relevance. Mention category/tool without hard link.`;
+      reason = `Low commercial intent (${intentScore}) but topical inquiry. Mention category/tool without hard link.`;
     } else {
       affiliateMode = 'NONE';
-      reason = `Relevance (${relevanceScore}) and intent (${intentScore}) insufficient for commercial mode.`;
+      reason = `Regular social conversation (intent ${intentScore}). 100% organic banter with no commercial angle.`;
     }
 
     return {

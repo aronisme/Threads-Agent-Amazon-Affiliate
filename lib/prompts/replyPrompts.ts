@@ -5,7 +5,8 @@ export function buildReplyPrompt(
   originalPostText: string,
   authorUsername: string,
   relevantProduct?: IProduct | null,
-  affiliateMode: AffiliateMode = 'NONE'
+  affiliateMode: AffiliateMode = 'NONE',
+  parentPostText?: string
 ): string {
   let strategy = '';
 
@@ -23,7 +24,7 @@ export function buildReplyPrompt(
       break;
 
     case 'PLAYFUL':
-      strategy = `Respond with a lighthearted joke, meme reference, or witty one-liner that matches the mood of @${authorUsername}'s post.`;
+      strategy = `Respond with a lighthearted joke, meme reference, or witty one-liner that matches the mood of @${authorUsername}'s comment.`;
       break;
   }
 
@@ -42,10 +43,16 @@ DO NOT include a link yet. Keep it conversational.`;
   } else if (affiliateMode === 'MENTION_ONLY') {
     productInstruction = `\nCOMMERCIAL CONTEXT (MENTION ONLY):
 Casually mention that category of tool (e.g. "a compact GaN charger" or "a teardrop footrest") in passing without specific brand or link.`;
+  } else {
+    productInstruction = `\nORGANIC SOCIAL INTERACTION (NO PRODUCTS OR LINKS):
+This is a regular social comment. Do NOT mention any products, brands, or links. Simply banter, laugh, agree, or joke like a regular person on Threads.`;
   }
 
-  return `You are replying to this Threads post by @${authorUsername}:
-"${originalPostText}"
+  const contextHeader = parentPostText
+    ? `Your original post was:\n"${parentPostText}"\n\nUser @${authorUsername} commented:\n"${originalPostText}"`
+    : `You are replying to this Threads comment by @${authorUsername}:\n"${originalPostText}"`;
+
+  return `${contextHeader}
 
 YOUR GOAL:
 Strategy: [${replyClass}]
@@ -54,7 +61,6 @@ ${productInstruction}
 
 RULES:
 1. Keep it short (1-2 sentences, under 200 characters).
-2. Talk like a fellow Threads user replying in the comments.
-3. DO NOT fake personal backstory ("I bought it 3 years ago"). Use curator language: "this looks like what you need", "there's a solid one called...".
-4. Output ONLY the response text.`;
+2. Talk like a fellow Threads user replying in the comments (relatable, friendly, casual).
+3. Output ONLY the response text.`;
 }

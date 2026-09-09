@@ -357,13 +357,13 @@ export class WorkerRunner {
     // Evaluate commercial intent and context using AffiliateEngine
     const conn = await connectToDatabase();
     let parentProduct: any = null;
-    let fullContext = incomingText;
+    let parentPostText: string | undefined = undefined;
 
     if (parentPostId && conn) {
       try {
         const parentPost = await Post.findById(parentPostId).populate('productId');
         if (parentPost) {
-          fullContext = `Parent Post: "${parentPost.text}"\nInbound Comment: "${incomingText}"`;
+          parentPostText = parentPost.text;
           if (parentPost.productId) {
             parentProduct = parentPost.productId;
           }
@@ -373,9 +373,10 @@ export class WorkerRunner {
       }
     }
 
-    const evalResult = await affiliateEngine.evaluate(fullContext, state, parentProduct);
-    const relevantProduct = evalResult.matchedProduct || parentProduct;
+    // Evaluate intent on the inbound comment
+    const evalResult = await affiliateEngine.evaluate(incomingText, state, parentProduct);
     const affiliateMode: AffiliateMode = evalResult.affiliateMode;
+    const relevantProduct = evalResult.matchedProduct; // null if affiliateMode === 'NONE'
 
     // Choose reply class: if direct link requested, choose ADD_VALUE to directly answer
     const classes: ReplyClass[] = affiliateMode === 'DIRECT_LINK' 
@@ -384,7 +385,7 @@ export class WorkerRunner {
     const selectedClass = classes[Math.floor(Math.random() * classes.length)];
 
     const sysPrompt = buildSystemPrompt(state.persona, state.currentMood);
-    const userPrompt = buildReplyPrompt(selectedClass, incomingText, authorUsername || 'someone', relevantProduct, affiliateMode);
+    const userPrompt = buildReplyPrompt(selectedClass, incomingText, authorUsername || 'someone', relevantProduct, affiliateMode, parentPostText);
 
     const aiRes = await aiEngine.generate({
       messages: [
