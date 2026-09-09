@@ -186,7 +186,10 @@ export class ThreadsClient {
   }
 
   /**
-   * Fetch conversation replies on a published post
+   * Fetch direct replies on a published post using the /replies endpoint.
+   * NOTE: The /conversation endpoint only works for root posts and returns empty
+   * for reply-type posts. The /replies endpoint correctly returns direct children
+   * for any post (root or reply), which is essential for detecting nested comments.
    */
   public async getConversation(mediaId: string): Promise<any[]> {
     if (this.isDryRun || !this.isConfigured()) {
@@ -194,12 +197,12 @@ export class ThreadsClient {
     }
 
     try {
-      const url = `${THREADS_API_BASE}/${mediaId}/conversation?fields=id,text,timestamp,username,permalink&access_token=${this.accessToken}`;
+      const url = `${THREADS_API_BASE}/${mediaId}/replies?fields=id,text,timestamp,username,permalink&access_token=${this.accessToken}`;
       const res = await fetch(url);
       const data = await res.json();
       return data.data || [];
     } catch (err) {
-      console.error(`❌ Failed to fetch conversation for thread ${mediaId}:`, err);
+      console.error(`❌ Failed to fetch replies for thread ${mediaId}:`, err);
       return [];
     }
   }
