@@ -9,19 +9,21 @@ const PostSchema = new Schema<PostDocument>(
     creationId: { type: String, default: null },
     type: {
       type: String,
-      enum: ['ORIGINAL_THOUGHT', 'QUESTION', 'STORY', 'CONTEXTUAL_PRODUCT', 'SELF_REPLY', 'COMMUNITY_REPLY'],
+      enum: ['ORIGINAL_THOUGHT', 'QUESTION', 'STORY', 'CONTEXTUAL_PRODUCT', 'VIRAL_MEDIA', 'SELF_REPLY', 'COMMUNITY_REPLY'],
       required: true,
       index: true,
     },
     text: { type: String, required: true },
     imageUrl: { type: String, default: null, trim: true },
+    imageUrls: { type: [String], default: [] },
     videoUrl: { type: String, default: null, trim: true },
     mediaType: {
       type: String,
-      enum: ['TEXT', 'IMAGE', 'VIDEO'],
+      enum: ['TEXT', 'IMAGE', 'VIDEO', 'CAROUSEL'],
       default: 'TEXT',
     },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
+    mediaStockId: { type: Schema.Types.ObjectId, ref: 'MediaStock', default: null },
     parentId: { type: String, default: null, index: true },
     replyClass: {
       type: String,

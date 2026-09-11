@@ -13,6 +13,7 @@ export default function Header() {
   const navItems = [
     { href: '/dashboard', label: strings.navDashboard },
     { href: '/products', label: strings.navProducts },
+    { href: '/media-stock', label: (strings as any).navMediaStock || 'Media Stock' },
     { href: '/persona', label: strings.navPersona },
     { href: '/activity', label: strings.navActivity },
     { href: '/settings', label: strings.navSettings },

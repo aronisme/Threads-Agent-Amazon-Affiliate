@@ -11,6 +11,7 @@ export interface ThreadsPostOptions {
   quotePostId?: string;
   imageUrl?: string;
   videoUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface ThreadsPublishResult {
@@ -181,6 +182,104 @@ export class ThreadsClient {
       return {
         success: false,
         error: err.message || 'Unknown Threads API error',
+      };
+    }
+  }
+
+  /**
+   * Publish multi-image Carousel container (2-5 images)
+   */
+  public async publishCarousel(options: {
+    text: string;
+    imageUrls: string[];
+    replyToId?: string;
+  }): Promise<ThreadsPublishResult> {
+    try {
+      if (this.isDryRun || !this.isConfigured()) {
+        const mockCreationId = `mock_carousel_c_${Date.now()}`;
+        const mockThreadsId = `mock_carousel_t_${Date.now()}`;
+        return {
+          success: true,
+          creationId: mockCreationId,
+          threadsId: mockThreadsId,
+          permalink: `https://threads.net/@mock_user/post/${mockThreadsId}`,
+          isMock: true,
+        };
+      }
+
+      const validUrls = options.imageUrls.filter((u) => Boolean(u && u.startsWith('http')));
+      if (validUrls.length < 2) {
+        return this.publishPost({
+          text: options.text,
+          imageUrl: validUrls[0],
+          replyToId: options.replyToId,
+        });
+      }
+
+      // Step 1: Create individual item containers
+      const itemContainerIds: string[] = [];
+      for (const imgUrl of validUrls.slice(0, 5)) {
+        const url = `${THREADS_API_BASE}/${this.userId}/threads`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: this.accessToken,
+            media_type: 'IMAGE',
+            image_url: imgUrl,
+            is_carousel_item: true,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error?.message || `Failed to create carousel item: HTTP ${res.status}`);
+        }
+        itemContainerIds.push(data.id);
+      }
+
+      // Step 2: Wait for all carousel items to be ready
+      for (const itemId of itemContainerIds) {
+        await this.waitForMediaReady(itemId, 12);
+      }
+
+      // Step 3: Create parent Carousel container
+      const carouselUrl = `${THREADS_API_BASE}/${this.userId}/threads`;
+      const carouselBody: Record<string, any> = {
+        access_token: this.accessToken,
+        media_type: 'CAROUSEL',
+        children: itemContainerIds.join(','),
+        text: options.text,
+      };
+      if (options.replyToId) carouselBody.reply_to_id = options.replyToId;
+
+      const carouselRes = await fetch(carouselUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(carouselBody),
+      });
+
+      const carouselData = await carouselRes.json();
+      if (!carouselRes.ok || carouselData.error) {
+        throw new Error(carouselData.error?.message || `Failed to create Carousel container: HTTP ${carouselRes.status}`);
+      }
+
+      const carouselCreationId = carouselData.id;
+
+      // Step 4: Publish parent carousel container
+      const { id: threadsId } = await this.publishContainer(carouselCreationId);
+
+      return {
+        success: true,
+        creationId: carouselCreationId,
+        threadsId,
+        permalink: `https://threads.net/t/${threadsId}`,
+        isMock: false,
+      };
+    } catch (err: any) {
+      console.error('❌ ThreadsClient Carousel Publish Error:', err);
+      return {
+        success: false,
+        error: err.message || 'Unknown Threads API carousel error',
       };
     }
   }

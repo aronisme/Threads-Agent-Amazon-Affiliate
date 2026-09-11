@@ -399,6 +399,15 @@ export default function DashboardPage() {
                       <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-zinc-800 text-zinc-300 border border-zinc-700">
                         {post.type}
                       </span>
+                      {post.mediaType && post.mediaType !== 'TEXT' && (
+                        <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          {post.mediaType === 'CAROUSEL'
+                            ? `🎠 CAROUSEL (${post.imageUrls?.length || 2})`
+                            : post.mediaType === 'VIDEO'
+                            ? '🎬 VIDEO'
+                            : '🖼️ IMAGE'}
+                        </span>
+                      )}
                       {post.replyClass && (
                         <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20">
                           {post.replyClass}
@@ -496,6 +505,24 @@ export default function DashboardPage() {
               className="inline-block w-full text-center px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white transition border border-zinc-700"
             >
               {language === 'id' ? 'Buka Vault Produk →' : 'Open Product Vault →'}
+            </Link>
+          </div>
+
+          <div className="glass-card rounded-xl p-5 space-y-3">
+            <h3 className="text-xs font-semibold tracking-wide text-purple-400 uppercase flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              {language === 'id' ? 'Stok Media Non-Afiliasi' : 'Media Stock Vault'}
+            </h3>
+            <p className="text-xs text-zinc-400">
+              {language === 'id'
+                ? 'Suplai video lucu, unik, atau estetik untuk postingan viral penarik impresi Threads.'
+                : 'Supply funny or viral videos for organic scroll-stopping timeline content.'}
+            </p>
+            <Link
+              href="/media-stock"
+              className="inline-block w-full text-center px-3 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-900/60 text-xs font-medium text-purple-200 transition border border-purple-700/50"
+            >
+              {language === 'id' ? 'Kelola Stok Media →' : 'Manage Media Stock →'}
             </Link>
           </div>
         </div>

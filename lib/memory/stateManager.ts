@@ -71,7 +71,7 @@ let inMemoryState: any = {
   isPaused: false,
   commercialPressureScore: 0.0,
   commercialBudget: {
-    dailyLimit: 4.0,
+    dailyLimit: 7.5,
     currentSpent: 0.0,
     lastResetDate: new Date().toISOString().split('T')[0],
   },
@@ -127,7 +127,7 @@ export class StateManager {
 
     if (!state.commercialBudget) {
       state.commercialBudget = {
-        dailyLimit: 4.0,
+        dailyLimit: 7.5,
         currentSpent: 0.0,
         lastResetDate: todayStr,
       };
@@ -220,13 +220,14 @@ export class StateManager {
 
     if (type === 'post') {
       state.dailyActions.postsCount += 1;
-      const nextAllowed = new Date(Date.now() + 45 * 60 * 1000);
+      const jitterMinutes = Math.floor(Math.random() * 21) + 25; // 25 to 45 min human-like cadence
+      const nextAllowed = new Date(Date.now() + jitterMinutes * 60 * 1000);
       state.cooldowns.nextPostAllowedAt = nextAllowed;
     } else if (type === 'reply') {
       state.dailyActions.repliesCount += 1;
     } else if (type === 'product_mention') {
       state.dailyActions.productMentionsCount += 1;
-      const coolUntil = new Date(Date.now() + 3 * 60 * 60 * 1000);
+      const coolUntil = new Date(Date.now() + 60 * 60 * 1000); // 60 min gap between products
       state.cooldowns.productMentionUntil = coolUntil;
     }
 
@@ -274,7 +275,7 @@ export class StateManager {
 
     if (!state.commercialBudget) {
       state.commercialBudget = {
-        dailyLimit: 4.0,
+        dailyLimit: 7.5,
         currentSpent: 0.0,
         lastResetDate: new Date().toISOString().split('T')[0],
       };
@@ -286,9 +287,9 @@ export class StateManager {
     const ratio = state.commercialBudget.currentSpent / state.commercialBudget.dailyLimit;
     state.commercialPressureScore = +Math.min(1.0, Math.max(0.0, ratio)).toFixed(2);
 
-    // Trigger product mention cooldown if direct link or soft recommendation (2h cooldown)
+    // Trigger product mention cooldown if direct link or soft recommendation (60m cooldown)
     if (mode === 'DIRECT_LINK' || mode === 'SOFT_RECOMMENDATION') {
-      state.cooldowns.productMentionUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h cooldown
+      state.cooldowns.productMentionUntil = new Date(Date.now() + 60 * 60 * 1000); // 60m cooldown
     }
 
     if (typeof state.save === 'function') {

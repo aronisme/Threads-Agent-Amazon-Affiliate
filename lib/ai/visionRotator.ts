@@ -13,6 +13,7 @@ export interface VisionAnalysisOptions {
   productName: string;
   category?: string;
   notes?: string;
+  customPrompt?: string;
 }
 
 class VisionRotatorEngine {
@@ -42,13 +43,15 @@ class VisionRotatorEngine {
    * Main cascading entry point for AI Vision analysis
    */
   public async analyzeProductImage(options: VisionAnalysisOptions): Promise<IVisualContext> {
-    const { imageUrl, productName, category = 'gear', notes = '' } = options;
+    const { imageUrl, productName, category = 'gear', notes = '', customPrompt } = options;
 
     if (!imageUrl || !imageUrl.startsWith('http')) {
       return this.generateHeuristicFallback(productName, category, notes, 'Invalid or missing image URL');
     }
 
-    const visionPrompt = `Analyze this product image for "${productName}" (${category}).
+    const visionPrompt =
+      customPrompt ||
+      `Analyze this product image for "${productName}" (${category}).
 You are an expert visual curator for modern lifestyle & tech creators on Threads.
 Examine the image carefully and extract authentic, tangible visual details:
 1. Aesthetic style (e.g. minimalist matte dark mode, warm ergonomic wooden setup, clean travel EDC).
@@ -374,6 +377,45 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
       modelUsed: `heuristic-v1 (${reason})`,
       analyzedAt: new Date(),
     };
+  }
+
+  /**
+   * Specialized AI Vision analysis for Non-Affiliate Viral & Humor Videos
+   */
+  public async analyzeStockVideo(options: {
+    videoUrl: string;
+    title: string;
+    category?: string;
+    notes?: string;
+  }): Promise<IVisualContext> {
+    const { videoUrl, title, category = 'FUNNY', notes = '' } = options;
+    const viralPrompt = `Analyze this video scene for "${title}" (Category: ${category}).
+You are an expert social media curator specializing in viral, witty, relatable, and funny content on Meta Threads.
+Examine the scene/frames carefully and extract what makes this video engaging:
+1. Aesthetic style & visual atmosphere (e.g. funny chaotic workspace, satisfying kinetic animation, adorable pet moment, relatable tech struggle).
+2. Dominant colors in the scene.
+3. Visible elements, objects, or actions taking place.
+4. Scale, setting, and mood.
+5. 2-3 genuine punchlines, visual hooks, or relatable moments that make viewers comment or share.
+6. Short summary description (1 sharp, engaging sentence capturing the essence).
+
+Respond ONLY with valid JSON in this exact structure without markdown or backticks:
+{
+  "aestheticStyle": "string",
+  "dominantColors": ["string"],
+  "materials": ["string"],
+  "scaleAndForm": "string",
+  "keyVisualHooks": ["string", "string"],
+  "summaryDescription": "string"
+}`;
+
+    return this.analyzeProductImage({
+      imageUrl: videoUrl,
+      productName: title,
+      category,
+      notes,
+      customPrompt: viralPrompt,
+    });
   }
 }
 

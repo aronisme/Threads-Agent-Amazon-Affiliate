@@ -7,6 +7,7 @@ export type PostType =
   | 'QUESTION'
   | 'STORY'
   | 'CONTEXTUAL_PRODUCT'
+  | 'VIRAL_MEDIA'
   | 'SELF_REPLY'
   | 'COMMUNITY_REPLY';
 
@@ -127,9 +128,11 @@ export interface IPost {
   type: PostType;
   text: string;
   imageUrl?: string;
+  imageUrls?: string[];
   videoUrl?: string;
-  mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO';
+  mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   productId?: string;
+  mediaStockId?: string;
   parentId?: string;
   replyClass?: ReplyClass;
   status: PostStatus;
@@ -140,6 +143,21 @@ export interface IPost {
   };
   createdAt: Date;
   publishedAt?: Date;
+}
+
+export interface IMediaStock {
+  _id?: string;
+  title: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  category: 'FUNNY' | 'RELATABLE' | 'AESTHETIC' | 'SATISFYING' | 'TECH_MEME' | 'GENERAL';
+  visualContext?: IVisualContext;
+  timesUsed: number;
+  lastUsedAt?: Date | null;
+  active: boolean;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IConversation {

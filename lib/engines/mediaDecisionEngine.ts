@@ -9,11 +9,12 @@
 
 import { IProduct, PostType } from '@/types';
 
-export type SelectedMediaFormat = 'TEXT' | 'IMAGE' | 'VIDEO';
+export type SelectedMediaFormat = 'TEXT' | 'IMAGE' | 'VIDEO' | 'CAROUSEL';
 
 export interface MediaDecisionResult {
   selectedFormat: SelectedMediaFormat;
   mediaUrl?: string;
+  mediaUrls?: string[];
   assetIndex?: number;
   reason: string;
 }
@@ -57,28 +58,30 @@ export class MediaDecisionEngine {
       };
     }
 
-    // 2. Determine format probability distribution
-    // Keep feed organic: 30-35% text-only even when media is present
+    // 2. Determine format probability distribution (aim for ~85% media attachment on product posts)
     const roll = Math.random();
     let chosenFormat: SelectedMediaFormat = 'TEXT';
 
     if (hasImages && hasVideos) {
-      // Prioritize high-engagement video reels (65%) to maximize scroll-stop attention
-      if (roll < 0.65) {
+      if (roll < 0.50) {
         chosenFormat = 'VIDEO';
-      } else if (roll < 0.85) {
+      } else if (roll < 0.75) {
+        chosenFormat = imagePool.length >= 2 ? 'CAROUSEL' : 'IMAGE';
+      } else if (roll < 0.90) {
         chosenFormat = 'IMAGE';
       } else {
         chosenFormat = 'TEXT';
       }
     } else if (hasVideos) {
-      if (roll < 0.75) {
+      if (roll < 0.85) {
         chosenFormat = 'VIDEO';
       } else {
         chosenFormat = 'TEXT';
       }
     } else if (hasImages) {
-      if (roll < 0.70) {
+      if (roll < 0.50 && imagePool.length >= 2) {
+        chosenFormat = 'CAROUSEL';
+      } else if (roll < 0.85) {
         chosenFormat = 'IMAGE';
       } else {
         chosenFormat = 'TEXT';
@@ -92,7 +95,18 @@ export class MediaDecisionEngine {
       };
     }
 
-    // 3. Select single asset using Anti-Fatigue / LRU rotation
+    // 3. Carousel Multi-Image Format
+    if (chosenFormat === 'CAROUSEL' && imagePool.length >= 2) {
+      const carouselImages = imagePool.slice(0, 5);
+      return {
+        selectedFormat: 'CAROUSEL',
+        mediaUrl: carouselImages[0],
+        mediaUrls: carouselImages,
+        reason: `Selected Carousel format with ${carouselImages.length} images.`,
+      };
+    }
+
+    // 4. Select single asset using Anti-Fatigue / LRU rotation
     if (chosenFormat === 'IMAGE' && hasImages) {
       const selected = this.pickRotatingAsset(imagePool, product.lastMediaUsedUrl);
       return {

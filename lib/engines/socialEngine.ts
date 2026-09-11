@@ -6,7 +6,7 @@ export interface SocialDecision {
   action: SocialAction;
   reason: string;
   candidateTopic?: string;
-  selectedPostType?: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT';
+  selectedPostType?: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT' | 'VIRAL_MEDIA';
 }
 
 /**
@@ -45,8 +45,8 @@ export class SocialEngine {
       };
     }
 
-    // 2. Check daily posting limits (Max 8 posts per day)
-    const MAX_DAILY_POSTS = 8;
+    // 2. Check daily posting limits (Max 14 posts per day for high active presence)
+    const MAX_DAILY_POSTS = 14;
     if (state.dailyActions.postsCount >= MAX_DAILY_POSTS) {
       return {
         action: 'DO_NOTHING',
@@ -54,7 +54,7 @@ export class SocialEngine {
       };
     }
 
-    // 2. Check cooldown for new top-level posts (min 45 min - 2.5 hours)
+    // 2. Check cooldown for new top-level posts (human-like jitter ~25-45 min)
     const nextPostAllowed = state.cooldowns.nextPostAllowedAt
       ? new Date(state.cooldowns.nextPostAllowedAt)
       : null;
@@ -78,26 +78,27 @@ export class SocialEngine {
     const chosenTopic = pool[Math.floor(Math.random() * pool.length)];
 
     // 4. Select post archetype naturally
-    // Product contextual post is only a possibility if product cooldown is clear, otherwise pure thoughts/questions/stories
+    // Product contextual post is only a possibility if product cooldown is clear
     const canMentionProduct =
       !state.cooldowns.productMentionUntil || new Date(state.cooldowns.productMentionUntil) <= now;
 
-    // Check commercial pressure (if pressure > 0.75, avoid contextual product to prevent saturation)
+    // Check commercial pressure (if pressure > 0.85, avoid contextual product to prevent saturation)
     const pressure = state.commercialPressureScore || 0;
-    const allowProductCandidate = canMentionProduct && pressure < 0.75;
+    const allowProductCandidate = canMentionProduct && pressure < 0.85;
 
     const roll = Math.random();
-    let postType: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT';
+    let postType: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT' | 'VIRAL_MEDIA';
 
-    // Increased affiliate frequency: ~35% probability when budget & cooldown allow (~2-3 product posts/day)
-    if (allowProductCandidate && roll < 0.35) {
+    // Target distribution: ~48% Product (+links), ~25% Viral Media Video, ~17% Thought, ~10% Question
+    // Overall media posts (Product + Viral Media) reach ~70% - 75%!
+    if (allowProductCandidate && roll < 0.48) {
       postType = 'CONTEXTUAL_PRODUCT';
-    } else if (roll < 0.60) {
+    } else if (roll < 0.73) {
+      postType = 'VIRAL_MEDIA';
+    } else if (roll < 0.90) {
       postType = 'ORIGINAL_THOUGHT';
-    } else if (roll < 0.80) {
-      postType = 'QUESTION';
     } else {
-      postType = 'STORY';
+      postType = 'QUESTION';
     }
 
     return {

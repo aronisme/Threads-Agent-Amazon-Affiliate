@@ -6,7 +6,7 @@ export function buildContentPrompt(
   productKnowledge?: IProduct | null,
   recentPostsSummary?: string,
   options?: {
-    mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO';
+    mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'CAROUSEL';
     visualContext?: IVisualContext;
   }
 ): string {
@@ -15,6 +15,27 @@ export function buildContentPrompt(
   const visual = options?.visualContext || productKnowledge?.visualContext;
 
   switch (type) {
+    case 'VIRAL_MEDIA':
+      const viralVisualBlock = visual
+        ? `
+ATTACHED VIDEO SCENE (Analyzed by AI Vision):
+- Atmosphere / Scene: ${visual.aestheticStyle}
+- Key Punchline / Visual Hook: ${visual.keyVisualHooks.join('; ')}
+- Scene Description: ${visual.summaryDescription}`
+        : '';
+
+      instruction = `You are sharing a short, viral, funny, or satisfying video clip on Threads related to "${topic}".
+${viralVisualBlock}
+
+TASK: Write a witty, scroll-stopping caption that complements this video.
+HUMAN CREATOR RULES:
+1. Speak casually like a real person reacting to or sharing something hilarious/satisfying/relatable.
+2. React to the specific action or humor naturally.
+3. Keep it punchy (1-2 short sentences).
+4. NEVER say "watch this video", "look at this clip", or "wait till the end".
+5. NO hashtags, NO links, NO promotions. 100% organic viral community vibe.`;
+      break;
+
     case 'ORIGINAL_THOUGHT':
       instruction = `Create a spontaneous, relatable original thought about "${topic}".
 Make it sound like a realization you just had today while working or chilling.

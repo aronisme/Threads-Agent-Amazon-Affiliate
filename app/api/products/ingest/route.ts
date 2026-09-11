@@ -85,17 +85,17 @@ export async function POST(req: NextRequest) {
             rawImageUrls.push(img.url);
           }
         }
-        if (rawImageUrls.length >= 4) break; // Max 4 high-quality photos
+        if (rawImageUrls.length >= 5) break; // Max 5 high-quality photos
       }
     }
 
-    // Videos: Filter at most 1 direct MP4 video (exclude .m3u8 HLS streams)
+    // Videos: Filter at most 4 direct MP4 videos (exclude .m3u8 HLS streams)
     const rawVideoUrls: string[] = [];
     if (Array.isArray(payload.videos) && payload.videos.length > 0) {
       for (const vid of payload.videos) {
-        if (vid.mp4Url && vid.mp4Url.startsWith('http') && vid.mp4Url.includes('.mp4')) {
+        if (vid.mp4Url && vid.mp4Url.startsWith('http') && vid.mp4Url.includes('.mp4') && !rawVideoUrls.includes(vid.mp4Url)) {
           rawVideoUrls.push(vid.mp4Url);
-          break; // Take max 1 top video to protect server execution time
+          if (rawVideoUrls.length >= 4) break; // Max 4 MP4 videos
         }
       }
     }

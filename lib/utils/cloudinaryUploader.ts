@@ -126,7 +126,7 @@ export class CloudinaryUploader {
   }
 
   /**
-   * Batch rehosts multiple URLs in parallel
+   * Batch rehosts multiple URLs in controlled chunks
    */
   public async rehostBatch(
     urls: string[],
@@ -134,7 +134,13 @@ export class CloudinaryUploader {
   ): Promise<string[]> {
     if (!urls || urls.length === 0) return [];
     const validUrls = urls.map((u) => u.trim()).filter(Boolean);
-    const results = await Promise.all(validUrls.map((u) => this.rehostMedia(u, resourceType)));
+    const chunkSize = resourceType === 'video' ? 2 : 3;
+    const results: string[] = [];
+    for (let i = 0; i < validUrls.length; i += chunkSize) {
+      const chunk = validUrls.slice(i, i + chunkSize);
+      const chunkResults = await Promise.all(chunk.map((u) => this.rehostMedia(u, resourceType)));
+      results.push(...chunkResults);
+    }
     return results;
   }
 }

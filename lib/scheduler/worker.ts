@@ -2,6 +2,7 @@ import connectToDatabase from '@/db/client';
 import { JobDocument } from '@/db/models/Job';
 import Post from '@/db/models/Post';
 import Product from '@/db/models/Product';
+import MediaStock from '@/db/models/MediaStock';
 import stateManager from '@/lib/memory/stateManager';
 import memoryEngine from '@/lib/memory/memoryEngine';
 import aiEngine from '@/lib/ai/groqRotator';
@@ -76,13 +77,47 @@ export class WorkerRunner {
 
     const conn = await connectToDatabase();
 
-    // 2. Affiliate Engine evaluation if type is contextual product or self-reply
+    let mediaType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'CAROUSEL' = 'TEXT';
+    let attachedImageUrl: string | undefined = undefined;
+    let attachedImageUrls: string[] | undefined = undefined;
+    let attachedVideoUrl: string | undefined = undefined;
+    let targetMediaStock: any = null;
+
+    // 2. Affiliate & Content Engine evaluation
     if (postType === 'CONTEXTUAL_PRODUCT') {
       const bestMatch = await affiliateEngine.findBestProduct(chosenTopic || 'tech gadgets', state);
       if (bestMatch.product && bestMatch.relevanceScore >= 0.35) {
         targetProduct = bestMatch.product;
       } else {
         // Fallback to purely organic thought if no product is genuinely relevant
+        postType = 'ORIGINAL_THOUGHT';
+      }
+    } else if (postType === 'VIRAL_MEDIA') {
+      if (conn) {
+        targetMediaStock = await MediaStock.findOne({ active: true }).sort({ timesUsed: 1, lastUsedAt: 1 });
+      }
+      if (targetMediaStock) {
+        attachedVideoUrl = targetMediaStock.videoUrl;
+        mediaType = 'VIDEO' as any;
+        if (!targetMediaStock.visualContext || !targetMediaStock.visualContext.aestheticStyle) {
+          try {
+            console.info(`👁️ Analyzing viral stock video "${targetMediaStock.title}" with AI Vision...`);
+            const visionData = await visionRotator.analyzeStockVideo({
+              videoUrl: targetMediaStock.videoUrl,
+              title: targetMediaStock.title,
+              category: targetMediaStock.category,
+              notes: targetMediaStock.notes,
+            });
+            targetMediaStock.visualContext = visionData;
+            if (typeof targetMediaStock.save === 'function') {
+              await targetMediaStock.save();
+            }
+          } catch (vErr) {
+            console.warn('⚠️ Stock video vision analysis error:', vErr);
+          }
+        }
+      } else {
+        console.warn('⚠️ No active stock video in MediaStock vault. Falling back to ORIGINAL_THOUGHT.');
         postType = 'ORIGINAL_THOUGHT';
       }
     } else if (postType === 'SELF_REPLY') {
@@ -100,12 +135,7 @@ export class WorkerRunner {
       }
     }
 
-    // 2.1 Just-in-Time AI Vision Learning:
-    // If target product has an image and hasn't been visually analyzed yet, analyze it across Groq/xKiro/Mistral
-    let mediaType: 'TEXT' | 'IMAGE' | 'VIDEO' = 'TEXT';
-    let attachedImageUrl: string | undefined = undefined;
-    let attachedVideoUrl: string | undefined = undefined;
-
+    // 2.1 Just-in-Time AI Vision Learning for Products:
     if (targetProduct && postType === 'CONTEXTUAL_PRODUCT') {
       const primaryMedia =
         targetProduct.videoUrl ||
@@ -132,13 +162,16 @@ export class WorkerRunner {
         }
       }
 
-      // 2.2 Media Decision Engine: Select single asset from pool or text-only (anti-fatigue rotation)
+      // 2.2 Media Decision Engine: Select asset (Single, Carousel, Video, or Text)
       const decision = mediaDecisionEngine.decideMedia(targetProduct, postType);
-      mediaType = decision.selectedFormat;
+      mediaType = decision.selectedFormat as any;
       if (mediaType === 'IMAGE') {
         attachedImageUrl = decision.mediaUrl;
       } else if (mediaType === 'VIDEO') {
         attachedVideoUrl = decision.mediaUrl;
+      } else if (mediaType === 'CAROUSEL') {
+        attachedImageUrls = decision.mediaUrls;
+        attachedImageUrl = decision.mediaUrl;
       }
       console.info(`🎬 [MediaDecision] Format: ${mediaType} | Asset: ${decision.mediaUrl || 'None (Text)'} | ${decision.reason}`);
     }
@@ -157,7 +190,7 @@ export class WorkerRunner {
     const sysPrompt = buildSystemPrompt(state.persona, state.currentMood);
     const userPrompt = buildContentPrompt(postType, chosenTopic, targetProduct, recentSummary, {
       mediaType,
-      visualContext: targetProduct?.visualContext,
+      visualContext: postType === 'VIRAL_MEDIA' ? targetMediaStock?.visualContext : targetProduct?.visualContext,
     });
 
     const aiRes = await aiEngine.generate({
@@ -191,13 +224,21 @@ export class WorkerRunner {
     let publishedResult: any = null;
 
     if (state.autonomyLevel >= 1 && quality.passed) {
-      // Execute publish (attaching image or video when applicable)
-      publishedResult = await threadsClient.publishPost({
-        text: quality.sanitizedText,
-        imageUrl: attachedImageUrl,
-        videoUrl: attachedVideoUrl,
-        replyToId: job.payload.parentThreadId,
-      });
+      // Execute publish (attaching carousel, image, or video when applicable)
+      if (mediaType === 'CAROUSEL' && attachedImageUrls && attachedImageUrls.length >= 2) {
+        publishedResult = await threadsClient.publishCarousel({
+          text: quality.sanitizedText,
+          imageUrls: attachedImageUrls,
+          replyToId: job.payload.parentThreadId,
+        });
+      } else {
+        publishedResult = await threadsClient.publishPost({
+          text: quality.sanitizedText,
+          imageUrl: attachedImageUrl,
+          videoUrl: attachedVideoUrl,
+          replyToId: job.payload.parentThreadId,
+        });
+      }
       if (publishedResult.success) {
         status = 'PUBLISHED';
       }
@@ -213,8 +254,10 @@ export class WorkerRunner {
         text: quality.sanitizedText,
         mediaType,
         imageUrl: attachedImageUrl || null,
+        imageUrls: attachedImageUrls || [],
         videoUrl: attachedVideoUrl || null,
         productId: targetProduct?._id || null,
+        mediaStockId: targetMediaStock?._id || null,
         parentId: job.payload.parentThreadId || null,
         status,
         simulationData: {
@@ -232,6 +275,7 @@ export class WorkerRunner {
         text: quality.sanitizedText,
         mediaType,
         imageUrl: attachedImageUrl || null,
+        imageUrls: attachedImageUrls || [],
         videoUrl: attachedVideoUrl || null,
         status,
         simulationData: {
@@ -243,9 +287,15 @@ export class WorkerRunner {
       };
     }
 
-    // 10. Update state, memories, and product stats
+    // 10. Update state, memories, and stats
     await stateManager.recordAction('post', chosenTopic, targetProduct?.name);
     await memoryEngine.recordMemory('TOPIC', chosenTopic, quality.sanitizedText.substring(0, 80));
+
+    if (targetMediaStock && typeof targetMediaStock.save === 'function') {
+      targetMediaStock.timesUsed = (targetMediaStock.timesUsed || 0) + 1;
+      targetMediaStock.lastUsedAt = new Date();
+      await targetMediaStock.save();
+    }
 
     if (targetProduct) {
       if (typeof targetProduct.save === 'function') {
