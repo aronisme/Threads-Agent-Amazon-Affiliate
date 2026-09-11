@@ -12,40 +12,42 @@
 - **Dual-Engine Architecture**:
   - **Social Engine**: Decides organic posting, everyday conversations, questions, and natural engagement cadence independently of products.
   - **Affiliate Engine**: Evaluates commercial intent score (0.0 to 1.0) and product relevance. Only introduces products when contextually natural.
+- **📡 Radar Tren Viral AS (Google Trends & Reddit Feeds)**:
+  - 100% aman anti-banned tanpa API key pihak ketiga. Menarik tren harian AS dari Google Trends RSS, Google News Tech US, dan komunitas Reddit US (*r/battlestations*, *r/gadgets*, *r/Workspaces*).
+  - Agen otomatis memprioritaskan topik hangat ini agar konten selalu relevan dengan audiens target Amerika Serikat.
+- **🎬 Stok Media Viral & Autonomous AI Vision**:
+  - Vault media video non-afiliasi untuk konten viral, relatable moments, meme teknologi, dan aesthetic hooks.
+  - Video otomatis ditonton dan dianalisis oleh AI Vision multimodal (*Mistral Pixtral / Qwen-VL*) untuk menghasilkan judul, kategori, dan deskripsi visual secara otonom.
+- **🧩 Universal Web Video Sniffer & Floating Export Button**:
+  - Ekstensi Chrome/Brave otomatis mendeteksi video di halaman web mana pun (Threads, TikTok, Twitter/X, Reddit, Instagram, RedNote/Xiaohongshu).
+  - Menyematkan tombol melayang **`🚀 Export ke Stok`** di sudut kanan atas setiap video web untuk ekspor 1-klik langsung ke Vercel Cloud.
+  - **Resolusi Streaming Blob & MediaSource**: Mengekstrak direct MP4 stream asli dari tag JSON/script (`__INITIAL_STATE__`), resource timing entries, dan `chrome.webRequest` background sniffer.
+- **🛡️ Sistem Anti-Duplikat Berlapis (Client & Server Side)**:
+  - Memverifikasi URL video murni dan link postingan sumber sebelum upload.
+  - Mencegah ekspor berulang dan menghemat 100% kuota Cloudinary serta token AI Vision.
+  - Tombol pada video otomatis berubah menjadi **`✅ Sudah di Stok`** (hijau) jika video sudah tersimpan.
+- **⏱️ Batas Durasi Video Maksimal 90 Detik**:
+  - Mencegah video panjang (> 1.5 menit) yang dapat memboroskan kuota atau menyebabkan timeout serverless Vercel.
+  - Proteksi otomatis pada tombol sudut video, popup ekstensi, dan endpoint backend.
+- **🔐 Keamanan Login & Proteksi Dashboard**:
+  - Sistem autentikasi berbasis session cookie HTTP-only untuk melindungi dashboard dari akses publik.
+  - Whitelist aman untuk panggilan cron Google Apps Script dan ekspor ekstensi browser.
 - **High-Engagement Video Reel Priority (65%)**:
-  - Media Decision Engine prioritizes Cloudinary MP4 video reels (65%) over photos and text to maximize scroll-stop attention on Threads.
-  - Implements Least Recently Used (LRU) asset rotation to eliminate visual fatigue.
+  - Media Decision Engine memprioritaskan video MP4 Cloudinary (65%) dibanding gambar/teks untuk memaksimalkan retensi audiens Threads.
+  - Menerapkan rotasi aset Least Recently Used (LRU) untuk mencegah kejenuhan visual.
 - **Native Meta Threads Insights API Integration**:
-  - Direct live integration with Meta Graph API Insights reading real-time views, likes, replies, reposts, and follower counts via `/api/threads/insights`.
+  - Terhubung langsung dengan Meta Graph API Insights untuk metrik live views, likes, replies, reposts, dan follower count.
 - **Contextual Disclosure Funnel**:
-  - Top-level posts remain clean and focused on organic storytelling.
-  - Delayed self-reply (2-minute delay) and inbound comment replies casually drop the Amazon link with compliant FTC disclosures.
+  - Postingan utama tetap bersih dan fokus pada cerita organik.
+  - Tautan afiliasi diselipkan secara santun pada delayed self-reply (jeda 2 menit) atau balasan komentar dengan kepatuhan FTC (`#ad`).
 - **Commercial Pressure & Budget Control**:
-  - Daily weighted budget cap (Direct link: 1.0, Soft recommendation: 0.4, Mention: 0.15).
-  - Dynamic cooldowns preventing feed spam and maintaining high authentic creator reputation.
-- **FTC & Amazon Associates Dual-Layer Compliance**:
-  - Account-level disclosure in profile bio: *"As an Amazon Associate I earn from qualifying purchases."*
-  - Programmatic link-level disclosure injection (`#ad`) whenever affiliate links are rendered.
-  - Strict anti-fake personal experience guardrails (curator/discovery voice).
-- **Permanent $0 OPEX Architecture & GAS Optimization**:
-  - Engineered for permanent zero-cost operation on Vercel Hobby + MongoDB Atlas Free Tier.
-  - Fast-exit execution (`< 50ms`) for idle 5-minute cron pings from Google Apps Script.
-- **Multi-Tier AI Engine with Failover**:
-  - Multi-Key Groq Cloud LPU + Mistral 7B + xKiro API failover with round-robin key rotation and sub-second latency.
-- **Chrome Extension Product Scraper Ingest**:
-  - Direct authenticated endpoint (`/api/products/ingest`) with full CORS preflight support.
-  - Automatically receives rich Amazon product metadata (ASIN, title, price, discount, rating, bullet points, media).
-  - Out-of-stock guardrail (`active = !isOutOfStock`).
+  - Batas anggaran harian tertimbang (Direct link: 1.0, Soft recommendation: 0.4, Mention: 0.15) dengan cooldown dinamis.
 - **Cloudinary Automatic Media Rehosting**:
-  - Direct buffer rehosting with desktop browser User-Agent to bypass Amazon CDN anti-bot HTTP 403 blocks.
-  - Stores high-resolution images (`dwgfox722`/`lynke_app`) and videos (`drkbqpxqf`/`vidgram`) on Cloudinary.
+  - Re-hosting otomatis media eksternal ke CDN Cloudinary dengan desktop User-Agent untuk mencegah blokir HTTP 403.
 - **Full UI Localization (🇮🇩 ID / 🇺🇸 EN)**:
-  - Instant header language toggle switch with persistent local preference.
-  - Complete natural Indonesian creator terminology across Dashboard, Vault, Persona, Activity, and Settings.
+  - Toggle bahasa instan di header dashboard dengan persistensi lokal.
 - **Modern Dashboard UI**:
-  - Telemetry meters for Commercial Pressure, Mood, and Activity.
-  - Interactive Persona configuration sliders (humor, sarcasm, warmth, slang, topics).
-  - Product Vault manager with bulk pipe-separated import.
+  - Telemetri meter Commercial Pressure, Mood, Activity, Radar Tren AS, Persona Sliders, dan Product Vault.
 
 ---
 

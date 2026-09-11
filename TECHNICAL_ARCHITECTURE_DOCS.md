@@ -415,6 +415,15 @@ Semua rute backend menggunakan **Next.js 14 App Router Route Handlers**:
 | `/api/products` | `POST` | Menambah produk baru ke vault (mendukung single add atau bulk import dengan pipa `\|`) | JSON: `{ name, affiliateUrl, category, notes }` ATAU `{ bulkText: "Name \| Link \| Category \| Notes" }` |
 | `/api/products/[id]`| `PUT/DELETE`| Mengedit atau menghapus produk dari vault | JSON update fields atau DELETE request |
 | `/api/products/ingest`| `POST/OPTIONS`| Endpoint khusus ingest dari Chrome Extension dengan auto-rehost Cloudinary & CORS preflight | Headers: `x-api-key: <CRON_SECRET>`, Body: `AmazonProductExportPayload` |
+| `/api/media-stock` | `GET/POST` | Mengambil daftar stok media viral atau menambah video baru dengan opsi auto-analyze AI Vision | Query: `?category=...&active=true`, Body: `{ videoUrl, title?, category?, notes? }` |
+| `/api/media-stock/[id]` | `GET/PUT/DELETE` | Mengambil detail, memperbarui, atau menghapus item stok media dari database | - |
+| `/api/media-stock/export` | `GET/POST/OPTIONS`| Endpoint 1-klik ekspor video dari ekstensi: verifikasi anti-duplikat, auto-rehost Cloudinary, AI Vision, dan filter durasi <= 90s | Headers: `x-api-key: <CRON_SECRET>`, Body: `{ videoUrl, title, sourceUrl, thumbnailUrl, duration, category }` |
+| `/api/media-stock/upload` | `POST` | Endpoint upload file video langsung dari disk komputer ke Cloudinary & MediaStock | `multipart/form-data` dengan field `file` |
+| `/api/trends` | `GET` | Mengambil daftar topik tren viral Amerika Serikat dari database | Query: `?limit=10` |
+| `/api/trends/sync` | `POST` | Memicu sinkronisasi instan dari feed Google Trends US, Google News US, dan Reddit US | `{}` |
+| `/api/auth/login` | `POST` | Autentikasi login pengguna dashboard dan membuat session cookie HTTP-only yang aman | JSON: `{ username, password }` |
+| `/api/auth/logout` | `POST` | Menghapus session cookie dan keluar dari dashboard | `{}` |
+| `/api/auth/session` | `GET` | Memeriksa status sesi login aktif | - |
 | `/api/state` | `GET` | Mengambil konfigurasi status agen, persona saat ini, mood, statistik harian, dan status token | - |
 | `/api/state` | `PUT` | Memperbarui konfigurasi status agen, slider persona, autonomy level, atau kredensial | JSON: Parsial update dari `IAgentState` |
 | `/api/threads/insights` | `GET` | Mengambil metrik analitik asli Meta Threads (views, likes, replies, followers) | Query opsional: `?mediaId=...` |
@@ -553,6 +562,53 @@ Dari hasil audit menyeluruh pada kode sumber, berikut adalah catatan teknis pent
 
 ### 4. Pelacak Klik Tautan (Affiliate Click Tracker)
 - **Rekomendasi**: Mengembangkan rute redirect seperti `/s/[code]` untuk membungkus tautan afiliasi Amazon. Hal ini memungkinkan pencatatan metrik performa (rasio klik tayang / CTR) langsung ke dalam database sebelum pengunjung diarahkan ke halaman Amazon.
+
+---
+
+## 12. FITUR LANJUTAN: RADAR TREN AS, STOK MEDIA VIRAL & EKSTENSI UNIVERSAL
+
+### 12.1 Radar Tren Viral AS ([lib/radar/trendRadar.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/radar/trendRadar.ts))
+- **100% Anti-Banned & Tanpa API Key**: Memanfaatkan RSS feed publik resmi yang tidak berisiko terblokir.
+- **Tiga Sumber Data Terpadu**:
+  1. *Google Trends US Daily RSS*: Pencarian paling banyak diperbincangkan di Amerika Serikat (`geo=US`).
+  2. *Google News US Tech/Desk Setup RSS*: Berita teknologi terkini dan rilis perangkat keras di AS.
+  3. *Reddit US Tech Communities RSS*: Diskusi organik dari komunitas Reddit AS (*r/battlestations*, *r/Workspaces*, *r/gadgets*, *r/desksetup*).
+- **Integrasi dengan AI Social Engine**: Agen secara otomatis memprioritaskan topik tren dari radar saat menyusun draf postingan organik, memastikan relevansi tinggi dengan audiens lokal AS.
+- **Database Model**: Disimpan dalam model [TrendTopic](file:///c:/App%20Tools/amazon%20affiliate%20agent/db/models/TrendTopic.ts) dengan skor peringkat dan riwayat frekuensi pemakaian (`timesReferenced`).
+
+### 12.2 Stok Media Viral & Autonomous AI Vision
+- **Model MediaStock ([db/models/MediaStock.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/db/models/MediaStock.ts))**:
+  - Menyimpan koleksi video MP4 viral non-afiliasi (reels, meme teknologi, satisfying clips, relatable moments).
+  - Dilengkapi field `originalVideoUrl`, `sourceUrl`, `duration`, dan `visualContext`.
+- **Autonomous AI Vision ([lib/ai/visionRotator.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/ai/visionRotator.ts))**:
+  - Model multimodal (*Mistral Pixtral / Qwen-VL*) secara otomatis menonton video, mengekstrak hook visual, menghasilkan judul viral, dan mengklasifikasikan kategori secara mandiri tanpa input manual pengguna.
+  - Video otomatis di-rehost secara permanen ke bucket video Cloudinary.
+
+### 12.3 Ekstensi Browser Universal Video Sniffer & In-Page Overlay
+- **In-Page Floating Export Button ([videoSniffer.js](file:///c:/App%20Tools/amazon%20affiliate%20agent/amazon%20screper%20extension/videoSniffer.js))**:
+  - Secara otomatis menempatkan tombol melayang **`🚀 Export ke Stok`** di sudut kanan atas setiap pemutar video web (Threads, TikTok, Twitter/X, Reddit, Instagram, RedNote/Xiaohongshu).
+  - Mendukung *infinite scroll* feed menggunakan `MutationObserver`.
+- **Resolusi Streaming Blob & MediaSource (RedNote / Xiaohongshu)**:
+  - Mengatasi pemutar video modern yang menggunakan URL `blob:https://...` dengan 3 lapis ekstraksi:
+    1. *Page State / JSON Script Parser*: Mengekstrak `masterUrl` / `backupUrl` langsung dari objek `__INITIAL_STATE__` halaman RedNote (`sns-video-bd.xhscdn.com`).
+    2. *Performance Resource Timing*: Memindai `performance.getEntriesByType('resource')` untuk menangkap request media yang telah diunduh browser.
+    3. *Background Network Sniffer*: Menggunakan `chrome.webRequest.onResponseStarted` di `background.js` untuk menangkap stream video ber-MIME `video/*` atau `.mp4` pada lapisan jaringan browser.
+
+### 12.4 Sistem Anti-Duplikat Total (Client & Server Side)
+- **Hemat 100% Kuota Cloudinary & Token AI**:
+  - Backend ([route.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/app/api/media-stock/export/route.ts)) memeriksa `videoUrl`, `originalVideoUrl`, `sourceUrl`, dan *Root Path Murni* (membersihkan query token kedaluwarsa CDN).
+  - Jika video sudah ada di database, backend langsung mengembalikan data yang sudah tersimpan (`isDuplicate: true`) tanpa memanggil Cloudinary dan tanpa memanggil model AI Vision.
+  - Tombol pada video di halaman web dan popup ekstensi otomatis berganti status menjadi **`✅ Sudah di Stok`** (hijau) dan memblokir klik berulang.
+
+### 12.5 Pembatasan Durasi Video Maksimal 90 Detik (1.5 Menit)
+- Konten viral Threads dioptimalkan untuk klip pendek (5 - 60 detik). Video berdurasi > 90 detik diblokir secara otomatis di:
+  - Tombol sudut video di halaman web: Berubah warna oranye **`⚠️ Terlalu Panjang (>90s)`** dan membatalkan ekspor.
+  - Popup ekstensi: Memberikan badge peringatan dan membatalkan ekspor.
+  - Backend API: Mengembalikan HTTP 400 jika video melebihi batas 90 detik.
+
+### 12.6 Keamanan Autentikasi Dashboard ([middleware.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/middleware.ts))
+- Dashboard dilindungi oleh sistem login sesi berbasis cookie HTTP-only (`threads_agent_session`).
+- Rute webhook Cron (`/api/cron/*`) dan ekspor ekstensi (`/api/media-stock/export`, `/api/products/ingest`) memiliki whitelist aman dengan autentikasi `x-api-key` / `CRON_SECRET`.
 
 ---
 *Dokumen ini disusun dan diverifikasi secara komprehensif berdasarkan struktur kode, dependensi, dan logika bisnis repositori.*
