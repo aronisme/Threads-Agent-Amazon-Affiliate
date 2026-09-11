@@ -35,40 +35,49 @@ document.addEventListener('DOMContentLoaded', () => {
   const universalServerWarning = document.getElementById('universalServerWarning');
   const univSwitchToProdLink = document.getElementById('univSwitchToProdLink');
 
-  // Helper to fetch saved API Config from storage
+  // Helper to fetch saved API Config from storage (Default to deployed Vercel Cloud)
   function getStoredApiConfig() {
     return new Promise((resolve) => {
       chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey'], (result) => {
-        const endpoint = result.amazonScraperApiEndpoint || LOCAL_API_URL;
+        let endpoint = result.amazonScraperApiEndpoint;
+        // Default strictly to deployed Vercel Cloud URL
+        if (!endpoint || endpoint.includes('localhost') || endpoint.includes('127.0.0.1')) {
+          endpoint = PROD_API_URL;
+          chrome.storage.local.set({ amazonScraperApiEndpoint: PROD_API_URL });
+        }
         const apiKey = result.amazonScraperApiKey || DEFAULT_API_KEY;
         resolve({ endpoint, apiKey });
       });
     });
   }
 
-  // Check connection status in Universal Video view
+  // Check connection status in Universal Video view (Default to deployed Vercel Cloud)
   function checkUniversalServerStatus(customEndpoint) {
     chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey'], (result) => {
-      const endpoint = customEndpoint || result.amazonScraperApiEndpoint || LOCAL_API_URL;
+      let endpoint = customEndpoint || result.amazonScraperApiEndpoint;
+      if (!endpoint || endpoint.includes('localhost') || endpoint.includes('127.0.0.1')) {
+        endpoint = PROD_API_URL;
+        chrome.storage.local.set({ amazonScraperApiEndpoint: PROD_API_URL });
+      }
       const apiKey = result.amazonScraperApiKey || DEFAULT_API_KEY;
-      const isLocal = endpoint.includes('localhost') || endpoint.includes('127.0.0.1');
+      const isProd = endpoint.includes('vercel.app') || !endpoint.includes('localhost');
 
       if (univBtnLocal && univBtnProd) {
-        if (isLocal) {
-          univBtnLocal.style.background = '#4f46e5';
-          univBtnLocal.style.color = '#fff';
-          univBtnProd.style.background = 'transparent';
-          univBtnProd.style.color = '#a1a1aa';
-        } else {
+        if (isProd) {
           univBtnProd.style.background = '#4f46e5';
           univBtnProd.style.color = '#fff';
           univBtnLocal.style.background = 'transparent';
           univBtnLocal.style.color = '#a1a1aa';
+        } else {
+          univBtnLocal.style.background = '#4f46e5';
+          univBtnLocal.style.color = '#fff';
+          univBtnProd.style.background = 'transparent';
+          univBtnProd.style.color = '#a1a1aa';
         }
       }
 
       if (univServerDot) univServerDot.style.background = '#eab308';
-      if (univServerStatusText) univServerStatusText.textContent = `Pengecekan: ${isLocal ? 'Localhost (3000)' : 'Prod (Vercel)'}...`;
+      if (univServerStatusText) univServerStatusText.textContent = `Pengecekan: ${isProd ? 'Vercel Cloud (threads-agent-amazon-affiliate.vercel.app)' : 'Localhost (3000)'}...`;
 
       chrome.runtime.sendMessage({
         action: 'TEST_API_CONNECTION',
@@ -77,11 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }, (res) => {
         if (res && res.success) {
           if (univServerDot) univServerDot.style.background = '#10b981';
-          if (univServerStatusText) univServerStatusText.textContent = `Aktif: ${isLocal ? 'Localhost (3000)' : 'Prod (Vercel)'}`;
+          if (univServerStatusText) univServerStatusText.textContent = `Aktif: ${isProd ? 'Vercel Cloud (Online)' : 'Localhost'}`;
           if (universalServerWarning) universalServerWarning.classList.add('hidden');
         } else {
           if (univServerDot) univServerDot.style.background = '#ef4444';
-          if (univServerStatusText) univServerStatusText.textContent = `Offline: ${isLocal ? 'Localhost (3000)' : 'Prod (Vercel)'}`;
+          if (univServerStatusText) univServerStatusText.textContent = `Offline: ${isProd ? 'Vercel Cloud' : 'Localhost'}`;
           if (universalServerWarning) universalServerWarning.classList.remove('hidden');
         }
       });
@@ -1229,9 +1238,13 @@ ${(currentProduct.videos || []).map((v, i) => `[${i + 1}] ${v.title} -> ${v.mp4U
     }
   }
 
-  // Load saved API settings from chrome.storage
+  // Load saved API settings from chrome.storage (Default to deployed Vercel Cloud)
   chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey'], (result) => {
-    const endpoint = result.amazonScraperApiEndpoint || LOCAL_API_URL;
+    let endpoint = result.amazonScraperApiEndpoint;
+    if (!endpoint || endpoint.includes('localhost') || endpoint.includes('127.0.0.1')) {
+      endpoint = PROD_API_URL;
+      chrome.storage.local.set({ amazonScraperApiEndpoint: PROD_API_URL });
+    }
     const apiKey = result.amazonScraperApiKey || DEFAULT_API_KEY;
 
     apiEndpointInput.value = endpoint;

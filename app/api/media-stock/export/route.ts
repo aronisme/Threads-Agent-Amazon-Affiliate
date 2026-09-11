@@ -99,10 +99,10 @@ export async function POST(req: NextRequest) {
       visualContext?.summaryDescription?.substring(0, 60) ||
       'Viral Web Video';
 
-    const resolvedCategory =
-      category && category !== 'AUTO'
-        ? category
-        : visualContext?.autoCategory || 'FUNNY';
+    const VALID_CATEGORIES = ['FUNNY', 'RELATABLE', 'AESTHETIC', 'SATISFYING', 'TECH_MEME', 'GENERAL'];
+    let candidateCategory = category && category !== 'AUTO' ? category : visualContext?.autoCategory;
+    if (candidateCategory === 'TECH') candidateCategory = 'TECH_MEME';
+    const resolvedCategory = VALID_CATEGORIES.includes(candidateCategory) ? candidateCategory : 'GENERAL';
 
     // 6. Save to Database
     const mediaItem = await MediaStock.create({

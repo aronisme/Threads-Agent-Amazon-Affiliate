@@ -144,8 +144,12 @@ async function exportVideoToMediaStock(endpoint, apiKey, videoData) {
     }
   }
 
-  let targetUrl = endpoint || 'http://localhost:3000/api/media-stock/export';
-  if (targetUrl.includes('/api/products/ingest')) {
+  // DEFAULT STRICTLY TO DEPLOYED VERCEL PRODUCTION ENDPOINT
+  const PROD_URL = 'https://threads-agent-amazon-affiliate.vercel.app/api/media-stock/export';
+  let targetUrl = endpoint || PROD_URL;
+  if (!endpoint || endpoint.includes('localhost') || endpoint.includes('127.0.0.1')) {
+    targetUrl = PROD_URL;
+  } else if (targetUrl.includes('/api/products/ingest')) {
     targetUrl = targetUrl.replace('/api/products/ingest', '/api/media-stock/export');
   } else if (!targetUrl.includes('/api/media-stock/export')) {
     targetUrl = `${targetUrl.replace(/\/+$/, '')}/api/media-stock/export`;
