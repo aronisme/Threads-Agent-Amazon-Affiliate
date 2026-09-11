@@ -367,14 +367,21 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="video-thumb-container" style="width: 88px; height: 58px; background: #09090b; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; border: 1px solid #27272a; cursor: pointer;" title="Klik untuk membuka/preview video">
             ${hasPoster ? `
               <img src="${v.poster}" alt="Thumbnail" class="video-thumb-img" style="width: 100%; height: 100%; object-fit: cover;">
-              <video src="${v.url}#t=0.5" preload="metadata" muted playsinline class="video-thumb-media" style="display: none; width: 100%; height: 100%; object-fit: cover;"></video>
+              <div class="video-thumb-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b, #312e81); flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
+                  <svg style="width: 10px; height: 10px; color: #c7d2fe; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </div>
+                <span style="font-size: 8px; color: #a5b4fc; font-weight: 700;">WEB VIDEO</span>
+              </div>
             ` : `
-              <video src="${v.url}#t=0.5" preload="metadata" muted playsinline class="video-thumb-media" style="width: 100%; height: 100%; object-fit: cover;"></video>
-              <div class="video-thumb-fallback" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: #18181b;">
-                <svg style="width: 20px; height: 20px; color: #71717a;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              <div class="video-thumb-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b, #312e81); flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
+                  <svg style="width: 10px; height: 10px; color: #c7d2fe; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </div>
+                <span style="font-size: 8px; color: #a5b4fc; font-weight: 700;">WEB VIDEO</span>
               </div>
             `}
-            <div class="video-play-badge" style="position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.2s;">
+            <div class="video-play-badge" style="position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.2s;">
               <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);">
                 <svg style="width: 9px; height: 9px; color: #fff; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -390,6 +397,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; border-top: 1px solid #1f1f23; padding-top: 6px;">
+          <button class="btn btn-sm btn-ghost btn-preview-url" type="button" style="font-size: 10px; padding: 3px 8px;" title="Putar video di tab baru">
+            👁️ Tonton
+          </button>
           <button class="btn btn-sm btn-ghost btn-copy-url" type="button" style="font-size: 10px; padding: 3px 8px;">
             Salin URL
           </button>
@@ -401,40 +411,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const thumbContainer = card.querySelector('.video-thumb-container');
       const thumbImg = card.querySelector('.video-thumb-img');
-      const thumbVid = card.querySelector('.video-thumb-media');
       const thumbFallback = card.querySelector('.video-thumb-fallback');
-      const playBadge = card.querySelector('.video-play-badge');
 
-      if (thumbImg && thumbVid) {
+      if (thumbImg && thumbFallback) {
         thumbImg.onerror = () => {
           thumbImg.style.display = 'none';
-          thumbVid.style.display = 'block';
+          thumbFallback.style.display = 'flex';
         };
-      }
-      if (thumbVid) {
-        thumbVid.onerror = () => {
-          thumbVid.style.display = 'none';
-          if (thumbFallback) thumbFallback.style.display = 'flex';
-        };
-        // Mini animated preview on hover
-        thumbContainer.addEventListener('mouseenter', () => {
-          if (thumbImg) thumbImg.style.display = 'none';
-          thumbVid.style.display = 'block';
-          if (playBadge) playBadge.style.opacity = '0';
-          thumbVid.play().catch(() => {});
-        });
-        thumbContainer.addEventListener('mouseleave', () => {
-          thumbVid.pause();
-          if (playBadge) playBadge.style.opacity = '1';
-          if (thumbImg && thumbImg.style.display !== 'none') {
-            thumbVid.style.display = 'none';
-            thumbImg.style.display = 'block';
-          }
-        });
       }
 
-      // Click thumbnail to preview video in a new tab
+      // Click thumbnail or preview button to open video
       thumbContainer.addEventListener('click', () => {
+        chrome.tabs.create({ url: v.url });
+      });
+
+      card.querySelector('.btn-preview-url').addEventListener('click', () => {
         chrome.tabs.create({ url: v.url });
       });
 
