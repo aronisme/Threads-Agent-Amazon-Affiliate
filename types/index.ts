@@ -151,6 +151,8 @@ export interface IMediaStock {
   _id?: string;
   title: string;
   videoUrl: string;
+  originalVideoUrl?: string;
+  sourceUrl?: string;
   thumbnailUrl?: string;
   category: 'FUNNY' | 'RELATABLE' | 'AESTHETIC' | 'SATISFYING' | 'TECH_MEME' | 'GENERAL';
   visualContext?: IVisualContext;

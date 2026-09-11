@@ -301,6 +301,76 @@
     return foundVideos;
   }
 
+  // Anti-Duplication Cache
+  const exportedUrlsCache = new Set();
+
+  function loadExportedUrls() {
+    try {
+      chrome.storage.local.get(['amzExportedVideoUrls'], (res) => {
+        if (res && Array.isArray(res.amzExportedVideoUrls)) {
+          res.amzExportedVideoUrls.forEach((u) => {
+            if (u) exportedUrlsCache.add(u.toLowerCase());
+          });
+          updateInPageButtonsState();
+        }
+      });
+    } catch (e) {}
+  }
+
+  function markUrlAsExported(url, sourceUrl) {
+    if (url) {
+      exportedUrlsCache.add(url.toLowerCase());
+      const pathOnly = url.split('?')[0];
+      if (pathOnly && pathOnly.length > 20) exportedUrlsCache.add(pathOnly.toLowerCase());
+    }
+    if (sourceUrl) {
+      exportedUrlsCache.add(sourceUrl.toLowerCase());
+    }
+    try {
+      chrome.storage.local.get(['amzExportedVideoUrls'], (res) => {
+        const list = Array.isArray(res.amzExportedVideoUrls) ? res.amzExportedVideoUrls : [];
+        if (url && !list.includes(url)) list.push(url);
+        const pathOnly = url ? url.split('?')[0] : '';
+        if (pathOnly && pathOnly.length > 20 && !list.includes(pathOnly)) list.push(pathOnly);
+        if (sourceUrl && !list.includes(sourceUrl)) list.push(sourceUrl);
+        if (list.length > 600) list.splice(0, list.length - 600);
+        chrome.storage.local.set({ amzExportedVideoUrls: list });
+      });
+    } catch (e) {}
+  }
+
+  function isVideoAlreadyExported(videoUrl, pageUrl) {
+    if (!videoUrl) return false;
+    const vLower = videoUrl.toLowerCase();
+    if (exportedUrlsCache.has(vLower)) return true;
+    const pathOnly = vLower.split('?')[0];
+    if (pathOnly && pathOnly.length > 20 && exportedUrlsCache.has(pathOnly)) return true;
+    if (pageUrl && exportedUrlsCache.has(pageUrl.toLowerCase())) return true;
+    return false;
+  }
+
+  function updateInPageButtonsState() {
+    document.querySelectorAll('.amz-video-overlay-btn').forEach((btn) => {
+      const vUrl = btn.dataset.videoUrl;
+      if (vUrl && isVideoAlreadyExported(vUrl, window.location.href)) {
+        btn.innerHTML = `<span>✅</span> <span class="amz-btn-text" style="font-weight: 700; font-size: 11px;">Sudah di Stok</span>`;
+        btn.style.background = 'rgba(5, 150, 105, 0.9) !important';
+        btn.style.borderColor = 'rgba(52, 211, 153, 0.6) !important';
+      }
+    });
+  }
+
+  // Listen for storage changes across tabs/popups
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.amzExportedVideoUrls) {
+        loadExportedUrls();
+      }
+    });
+  } catch (e) {}
+
+  loadExportedUrls();
+
   // --- IN-PAGE FLOATING EXPORT BUTTON IN TOP CORNER OF VIDEOS ---
   function attachInPageExportButton(vid, index) {
     if (!vid) return;
@@ -328,15 +398,40 @@
 
     vid.dataset.amzExportAttached = 'true';
 
+    let initialUrl = vid.currentSrc || vid.src || '';
+    if (!initialUrl) {
+      const s = vid.querySelector('source');
+      if (s) initialUrl = s.getAttribute('src') || '';
+    }
+    initialUrl = resolveFullUrl(initialUrl);
+
+    const alreadyExported = isVideoAlreadyExported(initialUrl, window.location.href);
+
     // Create the floating button
     const btn = document.createElement('button');
     btn.className = 'amz-video-overlay-btn';
     btn.type = 'button';
-    btn.setAttribute('title', 'Export video ini langsung ke Stok Media & AI Vision (Vercel Cloud)');
-    btn.innerHTML = `
-      <span style="font-size: 13px; line-height: 1;">🚀</span>
-      <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Export ke Stok</span>
-    `;
+    btn.dataset.videoUrl = initialUrl || '';
+    btn.setAttribute('title', alreadyExported ? 'Video ini sudah tersimpan di Stok Media Vercel' : 'Export video ini langsung ke Stok Media & AI Vision (Vercel Cloud)');
+    
+    if (alreadyExported) {
+      btn.innerHTML = `
+        <span style="font-size: 13px; line-height: 1;">✅</span>
+        <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Sudah di Stok</span>
+      `;
+    } else {
+      btn.innerHTML = `
+        <span style="font-size: 13px; line-height: 1;">🚀</span>
+        <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Export ke Stok</span>
+      `;
+    }
+
+    const bgGradient = alreadyExported
+      ? 'rgba(5, 150, 105, 0.9)'
+      : 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)';
+    const borderCol = alreadyExported
+      ? 'rgba(52, 211, 153, 0.6)'
+      : 'rgba(255, 255, 255, 0.4)';
 
     btn.style.cssText = `
       position: absolute !important;
@@ -346,9 +441,9 @@
       display: inline-flex !important;
       align-items: center !important;
       gap: 6px !important;
-      background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%) !important;
+      background: ${bgGradient} !important;
       color: #ffffff !important;
-      border: 1px solid rgba(255, 255, 255, 0.4) !important;
+      border: 1px solid ${borderCol} !important;
       padding: 6px 12px !important;
       border-radius: 20px !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -357,7 +452,7 @@
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45) !important;
       backdrop-filter: blur(8px) !important;
       -webkit-backdrop-filter: blur(8px) !important;
-      opacity: 0.9 !important;
+      opacity: 0.92 !important;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
       pointer-events: auto !important;
       user-select: none !important;
@@ -370,12 +465,12 @@
     });
 
     btn.addEventListener('mouseleave', () => {
-      btn.style.opacity = '0.9';
+      btn.style.opacity = '0.92';
       btn.style.transform = 'scale(1.0)';
       btn.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.45)';
     });
 
-    // Handle 1-Click Export from Page
+    // Handle 1-Click Export from Page (With Anti-Duplication Protection)
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -389,6 +484,16 @@
         videoUrl = vid.getAttribute('data-src') || vid.getAttribute('data-video-url') || '';
       }
       videoUrl = resolveFullUrl(videoUrl);
+      btn.dataset.videoUrl = videoUrl;
+
+      // 1. Client-side Anti-Duplicate Guard
+      if (isVideoAlreadyExported(videoUrl, window.location.href)) {
+        showInPageNotification('ℹ️ Video ini sudah ada di Stok Media Vercel Anda! (Hemat kuota & AI)', 'info');
+        btn.innerHTML = `<span>✅</span> <span style="font-weight:700;font-size:11px;">Sudah di Stok</span>`;
+        btn.style.background = 'rgba(5, 150, 105, 0.9)';
+        btn.style.borderColor = 'rgba(52, 211, 153, 0.6)';
+        return;
+      }
 
       if (!videoUrl || videoUrl.startsWith('blob:')) {
         showInPageNotification('⚠️ URL video belum siap atau menggunakan streaming blob khusus. Coba putar video terlebih dahulu.', 'error');
@@ -418,13 +523,18 @@
       }, (res) => {
         btn.disabled = false;
         if (res && res.success) {
-          btn.innerHTML = `<span>✅</span> <span style="font-weight:700;font-size:11px;">Tersimpan!</span>`;
-          btn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
-          showInPageNotification(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media Vercel!`, 'success');
-          setTimeout(() => {
-            btn.innerHTML = `<span>🚀</span><span style="font-weight:700;font-size:11px;">Export ke Stok</span>`;
-            btn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)';
-          }, 4500);
+          // Cache URL immediately so it will never be duplicated
+          markUrlAsExported(videoUrl, window.location.href);
+
+          btn.innerHTML = `<span>✅</span> <span style="font-weight:700;font-size:11px;">Sudah di Stok</span>`;
+          btn.style.background = 'rgba(5, 150, 105, 0.9)';
+          btn.style.borderColor = 'rgba(52, 211, 153, 0.6)';
+
+          if (res.isDuplicate) {
+            showInPageNotification(`ℹ️ Video ini sudah ada di Stok Media sebelumnya ("${res.title || 'Viral'}"). Otomatis dicegah duplikasi (hemat kuota & AI)!`, 'info');
+          } else {
+            showInPageNotification(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media Vercel!`, 'success');
+          }
         } else {
           btn.innerHTML = `<span>❌</span> <span style="font-weight:700;font-size:11px;">Gagal</span>`;
           btn.style.background = '#dc2626';

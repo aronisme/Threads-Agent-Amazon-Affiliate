@@ -6,7 +6,9 @@ export interface MediaStockDocument extends Omit<IMediaStock, '_id'>, Document {
 const MediaStockSchema = new Schema<MediaStockDocument>(
   {
     title: { type: String, required: true, trim: true },
-    videoUrl: { type: String, required: true, trim: true },
+    videoUrl: { type: String, required: true, trim: true, index: true },
+    originalVideoUrl: { type: String, default: null, trim: true, index: true },
+    sourceUrl: { type: String, default: null, trim: true, index: true },
     thumbnailUrl: { type: String, default: null, trim: true },
     category: {
       type: String,

@@ -341,137 +341,191 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderDetectedWebVideos(videos, tab) {
-    detectedVideosList.innerHTML = '';
-    const total = videos ? videos.length : 0;
-    detectedVideoCountBadge.textContent = `${total} Video`;
-    const host = tab.url ? new URL(tab.url).hostname : 'Halaman Web';
-    detectedVideoSubtitle.textContent = `${host} (${total} video terdeteksi)`;
+  // Anti-Duplication Cache & Checkers in Popup
+  function isVideoExported(vUrl, pageUrl, exportedSet) {
+    if (!vUrl) return false;
+    const vLower = vUrl.toLowerCase();
+    if (exportedSet.has(vLower)) return true;
+    const pathOnly = vLower.split('?')[0];
+    if (pathOnly && pathOnly.length > 20 && exportedSet.has(pathOnly)) return true;
+    if (pageUrl && exportedSet.has(pageUrl.toLowerCase())) return true;
+    return false;
+  }
 
-    if (!videos || videos.length === 0) {
-      noWebVideosFound.classList.remove('hidden');
-      return;
-    }
-
-    noWebVideosFound.classList.add('hidden');
-
-    videos.forEach((v, idx) => {
-      const card = document.createElement('div');
-      card.className = 'video-card';
-      card.style.cssText = 'border: 1px solid #27272a; background: #141416; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s;';
-
-      const hasPoster = v.poster && v.poster.trim().length > 0;
-
-      card.innerHTML = `
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <div class="video-thumb-container" style="width: 88px; height: 58px; background: #09090b; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; border: 1px solid #27272a; cursor: pointer;" title="Klik untuk membuka/preview video">
-            ${hasPoster ? `
-              <img src="${v.poster}" alt="Thumbnail" class="video-thumb-img" style="width: 100%; height: 100%; object-fit: cover;">
-              <div class="video-thumb-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b, #312e81); flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
-                <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 10px; height: 10px; color: #c7d2fe; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                </div>
-                <span style="font-size: 8px; color: #a5b4fc; font-weight: 700;">WEB VIDEO</span>
-              </div>
-            ` : `
-              <div class="video-thumb-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b, #312e81); flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
-                <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 10px; height: 10px; color: #c7d2fe; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                </div>
-                <span style="font-size: 8px; color: #a5b4fc; font-weight: 700;">WEB VIDEO</span>
-              </div>
-            `}
-            <div class="video-play-badge" style="position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.2s;">
-              <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);">
-                <svg style="width: 9px; height: 9px; color: #fff; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-              </div>
-            </div>
-            ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 600;">${v.duration}s</span>` : ''}
-          </div>
-          <div style="flex: 1; min-width: 0;">
-            <h4 style="font-size: 11px; font-weight: 600; color: #f4f4f5; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${v.title}">${v.title || `Video #${idx + 1}`}</h4>
-            <span style="font-size: 10px; color: #71717a; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.url}</span>
-            <span style="font-size: 9px; color: #a855f7; display: inline-block; margin-top: 3px;">✨ AI Vision Autodetect</span>
-          </div>
-        </div>
-        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; border-top: 1px solid #1f1f23; padding-top: 6px;">
-          <button class="btn btn-sm btn-ghost btn-preview-url" type="button" style="font-size: 10px; padding: 3px 8px;" title="Putar video di tab baru">
-            👁️ Tonton
-          </button>
-          <button class="btn btn-sm btn-ghost btn-copy-url" type="button" style="font-size: 10px; padding: 3px 8px;">
-            Salin URL
-          </button>
-          <button class="btn btn-sm btn-primary btn-export-stock" type="button" style="font-size: 10px; padding: 4px 10px; background: linear-gradient(135deg, #9333ea, #db2777); border: none;">
-            🚀 Export ke Stok Media
-          </button>
-        </div>
-      `;
-
-      const thumbContainer = card.querySelector('.video-thumb-container');
-      const thumbImg = card.querySelector('.video-thumb-img');
-      const thumbFallback = card.querySelector('.video-thumb-fallback');
-
-      if (thumbImg && thumbFallback) {
-        thumbImg.onerror = () => {
-          thumbImg.style.display = 'none';
-          thumbFallback.style.display = 'flex';
-        };
-      }
-
-      // Click thumbnail or preview button to open video
-      thumbContainer.addEventListener('click', () => {
-        chrome.tabs.create({ url: v.url });
-      });
-
-      card.querySelector('.btn-preview-url').addEventListener('click', () => {
-        chrome.tabs.create({ url: v.url });
-      });
-
-      card.querySelector('.btn-copy-url').addEventListener('click', () => {
-        navigator.clipboard.writeText(v.url);
-        showToast('URL video disalin ke clipboard!');
-      });
-
-      const exportBtn = card.querySelector('.btn-export-stock');
-      exportBtn.addEventListener('click', async () => {
-        exportBtn.disabled = true;
-        exportBtn.textContent = '⏳ Menyimpan...';
-        showToast('Mengirim video ke Stok Media & AI Vision...', 4000);
-
-        const config = await getStoredApiConfig();
-
-        chrome.runtime.sendMessage({
-          action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
-          endpoint: config.endpoint,
-          apiKey: config.apiKey,
-          videoUrl: v.url,
-          title: v.title,
-          sourceUrl: tab.url,
-          thumbnailUrl: v.poster,
-          category: 'AUTO',
-          notes: `Exported via Universal Web Sniffer from ${tab.url}`,
-        }, (res) => {
-          exportBtn.disabled = false;
-          if (res && res.success) {
-            exportBtn.textContent = '✅ Tersimpan!';
-            exportBtn.style.background = '#059669';
-            showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
-          } else {
-            exportBtn.textContent = '🚀 Export ke Stok Media';
-            const errMsg = res?.error || 'Koneksi API gagal';
-            showToast(`Gagal: ${errMsg}`, 5000);
-            if (universalServerWarning) universalServerWarning.classList.remove('hidden');
-          }
-        });
-      });
-
-      detectedVideosList.appendChild(card);
+  function saveExportedUrlToStorage(url, sourceUrl) {
+    chrome.storage.local.get(['amzExportedVideoUrls'], (res) => {
+      const list = Array.isArray(res.amzExportedVideoUrls) ? res.amzExportedVideoUrls : [];
+      if (url && !list.includes(url)) list.push(url);
+      const pathOnly = url ? url.split('?')[0] : '';
+      if (pathOnly && pathOnly.length > 20 && !list.includes(pathOnly)) list.push(pathOnly);
+      if (sourceUrl && !list.includes(sourceUrl)) list.push(sourceUrl);
+      if (list.length > 600) list.splice(0, list.length - 600);
+      chrome.storage.local.set({ amzExportedVideoUrls: list });
     });
   }
 
-  // Handle Manual Video URL Export
+  function renderDetectedWebVideos(videos, tab) {
+    chrome.storage.local.get(['amzExportedVideoUrls'], (storageRes) => {
+      const exportedSet = new Set(
+        (storageRes?.amzExportedVideoUrls || []).map((u) => (u ? u.toLowerCase() : ''))
+      );
+
+      detectedVideosList.innerHTML = '';
+      const total = videos ? videos.length : 0;
+      detectedVideoCountBadge.textContent = `${total} Video`;
+      const host = tab.url ? new URL(tab.url).hostname : 'Halaman Web';
+      detectedVideoSubtitle.textContent = `${host} (${total} video terdeteksi)`;
+
+      if (!videos || videos.length === 0) {
+        noWebVideosFound.classList.remove('hidden');
+        return;
+      }
+
+      noWebVideosFound.classList.add('hidden');
+
+      videos.forEach((v, idx) => {
+        const isAlreadySaved = isVideoExported(v.url, tab.url, exportedSet);
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.style.cssText = `border: 1px solid ${isAlreadySaved ? 'rgba(52, 211, 153, 0.4)' : '#27272a'}; background: ${isAlreadySaved ? '#0e1c15' : '#141416'}; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s;`;
+
+        const hasPoster = v.poster && v.poster.trim().length > 0;
+
+        card.innerHTML = `
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="video-thumb-container" style="width: 88px; height: 58px; background: #09090b; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; border: 1px solid #27272a; cursor: pointer;" title="Klik untuk membuka/preview video">
+              ${hasPoster ? `
+                <img src="${v.poster}" alt="Thumbnail" class="video-thumb-img" style="width: 100%; height: 100%; object-fit: cover;">
+                <div class="video-thumb-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b, #312e81); flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                  <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
+                    <svg style="width: 10px; height: 10px; color: #c7d2fe; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  </div>
+                  <span style="font-size: 8px; color: #a5b4fc; font-weight: 700;">WEB VIDEO</span>
+                </div>
+              ` : `
+                <div class="video-thumb-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b, #312e81); flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                  <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
+                    <svg style="width: 10px; height: 10px; color: #c7d2fe; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  </div>
+                  <span style="font-size: 8px; color: #a5b4fc; font-weight: 700;">WEB VIDEO</span>
+                </div>
+              `}
+              <div class="video-play-badge" style="position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.2s;">
+                <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);">
+                  <svg style="width: 9px; height: 9px; color: #fff; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                </div>
+              </div>
+              ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 600;">${v.duration}s</span>` : ''}
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <h4 style="font-size: 11px; font-weight: 600; color: #f4f4f5; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${v.title}">${v.title || `Video #${idx + 1}`}</h4>
+              <span style="font-size: 10px; color: #71717a; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.url}</span>
+              <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+                <span style="font-size: 9px; color: #a855f7; display: inline-block;">✨ AI Vision</span>
+                ${isAlreadySaved ? `<span class="badge-pill amz-saved-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 9px; font-weight: 700; border: 1px solid rgba(52, 211, 153, 0.4); padding: 1px 6px; border-radius: 4px;">✅ Sudah di Stok</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; border-top: 1px solid #1f1f23; padding-top: 6px;">
+            <button class="btn btn-sm btn-ghost btn-preview-url" type="button" style="font-size: 10px; padding: 3px 8px;" title="Putar video di tab baru">
+              👁️ Tonton
+            </button>
+            <button class="btn btn-sm btn-ghost btn-copy-url" type="button" style="font-size: 10px; padding: 3px 8px;">
+              Salin URL
+            </button>
+            <button class="btn btn-sm btn-export-stock" type="button" style="font-size: 10px; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; ${isAlreadySaved ? 'background: #059669; color: #ffffff; border: 1px solid rgba(52, 211, 153, 0.6);' : 'background: linear-gradient(135deg, #9333ea, #db2777); color: #ffffff; border: none;'}">
+              ${isAlreadySaved ? '✅ Sudah di Stok' : '🚀 Export ke Stok Media'}
+            </button>
+          </div>
+        `;
+
+        const thumbContainer = card.querySelector('.video-thumb-container');
+        const thumbImg = card.querySelector('.video-thumb-img');
+        const thumbFallback = card.querySelector('.video-thumb-fallback');
+
+        if (thumbImg && thumbFallback) {
+          thumbImg.onerror = () => {
+            thumbImg.style.display = 'none';
+            thumbFallback.style.display = 'flex';
+          };
+        }
+
+        // Click thumbnail or preview button to open video
+        thumbContainer.addEventListener('click', () => {
+          chrome.tabs.create({ url: v.url });
+        });
+
+        card.querySelector('.btn-preview-url').addEventListener('click', () => {
+          chrome.tabs.create({ url: v.url });
+        });
+
+        card.querySelector('.btn-copy-url').addEventListener('click', () => {
+          navigator.clipboard.writeText(v.url);
+          showToast('URL video disalin ke clipboard!');
+        });
+
+        const exportBtn = card.querySelector('.btn-export-stock');
+        exportBtn.addEventListener('click', async () => {
+          // Client-side anti-duplicate check
+          if (isVideoExported(v.url, tab.url, exportedSet)) {
+            showToast('ℹ️ Video ini sudah ada di Stok Media Vercel Anda! (Hemat kuota & AI)', 3500);
+            return;
+          }
+
+          exportBtn.disabled = true;
+          exportBtn.textContent = '⏳ Menyimpan...';
+          showToast('Mengirim video ke Stok Media & AI Vision...', 4000);
+
+          const config = await getStoredApiConfig();
+
+          chrome.runtime.sendMessage({
+            action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
+            endpoint: config.endpoint,
+            apiKey: config.apiKey,
+            videoUrl: v.url,
+            title: v.title,
+            sourceUrl: tab.url,
+            thumbnailUrl: v.poster,
+            category: 'AUTO',
+            notes: `Exported via Universal Web Sniffer from ${tab.url}`,
+          }, (res) => {
+            exportBtn.disabled = false;
+            if (res && res.success) {
+              // Mark as saved in local cache
+              saveExportedUrlToStorage(v.url, tab.url);
+              exportedSet.add(v.url.toLowerCase());
+              const pathOnly = v.url.split('?')[0];
+              if (pathOnly && pathOnly.length > 20) exportedSet.add(pathOnly.toLowerCase());
+              if (tab.url) exportedSet.add(tab.url.toLowerCase());
+
+              exportBtn.textContent = '✅ Sudah di Stok';
+              exportBtn.style.background = '#059669';
+              exportBtn.style.border = '1px solid rgba(52, 211, 153, 0.6)';
+              card.style.background = '#0e1c15';
+              card.style.borderColor = 'rgba(52, 211, 153, 0.4)';
+
+              if (res.isDuplicate) {
+                showToast(`ℹ️ Video ini sudah ada di Stok Media sebelumnya ("${res.title || 'Viral'}"). Otomatis dicegah duplikasi (hemat kuota & AI)!`, 5000);
+              } else {
+                showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
+              }
+            } else {
+              exportBtn.textContent = '🚀 Export ke Stok Media';
+              const errMsg = res?.error || 'Koneksi API gagal';
+              showToast(`Gagal: ${errMsg}`, 5000);
+              if (universalServerWarning) universalServerWarning.classList.remove('hidden');
+            }
+          });
+        });
+
+        detectedVideosList.appendChild(card);
+      });
+    });
+  }
+
+  // Handle Manual Video URL Export (With Anti-Duplication)
   if (exportManualVideoBtn && manualVideoUrlInput) {
     exportManualVideoBtn.addEventListener('click', async () => {
       const val = (manualVideoUrlInput.value || '').trim();
@@ -500,8 +554,13 @@ document.addEventListener('DOMContentLoaded', () => {
         exportManualVideoBtn.disabled = false;
         exportManualVideoBtn.textContent = 'Simpan';
         if (res && res.success) {
+          saveExportedUrlToStorage(val, activeTab?.url);
           manualVideoUrlInput.value = '';
-          showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
+          if (res.isDuplicate) {
+            showToast(`ℹ️ Video ini sudah ada di Stok Media sebelumnya ("${res.title || 'Viral'}"). Otomatis dicegah duplikasi (hemat kuota & AI)!`, 5000);
+          } else {
+            showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
+          }
         } else {
           const errMsg = res?.error || 'Koneksi API gagal';
           showToast(`Gagal: ${errMsg}`, 5000);

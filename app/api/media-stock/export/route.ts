@@ -19,9 +19,69 @@ export async function OPTIONS() {
   });
 }
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * GET /api/media-stock/export?checkUrl=...&sourceUrl=...
+ * Quickly checks if a video or source page already exists in MediaStock to prevent duplicate exports.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const checkUrl = searchParams.get('checkUrl')?.trim();
+    const sourceUrl = searchParams.get('sourceUrl')?.trim();
+
+    if (!checkUrl && !sourceUrl) {
+      return NextResponse.json(
+        { success: false, error: 'checkUrl or sourceUrl is required' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    await connectToDatabase();
+
+    const queries: any[] = [];
+    if (checkUrl) {
+      queries.push({ videoUrl: checkUrl });
+      queries.push({ originalVideoUrl: checkUrl });
+      const pathOnly = checkUrl.split('?')[0];
+      if (pathOnly && pathOnly.length > 25) {
+        queries.push({ videoUrl: { $regex: escapeRegex(pathOnly), $options: 'i' } });
+        queries.push({ originalVideoUrl: { $regex: escapeRegex(pathOnly), $options: 'i' } });
+      }
+    }
+
+    if (sourceUrl) {
+      queries.push({ sourceUrl });
+      queries.push({ notes: { $regex: escapeRegex(sourceUrl), $options: 'i' } });
+    }
+
+    const existing = await MediaStock.findOne({ $or: queries });
+
+    return NextResponse.json(
+      {
+        success: true,
+        exists: !!existing,
+        mediaId: existing?._id || null,
+        title: existing?.title || null,
+        category: existing?.category || null,
+      },
+      { headers: corsHeaders }
+    );
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+
 /**
  * POST /api/media-stock/export
  * Receives video URL from Chrome/Brave browser extension (from TikTok, Threads, Instagram, Reddit, or any site),
+ * checks for duplicates (skips re-upload & vision tokens if existing),
  * rehosts to Cloudinary, extracts punchline & category via AI Vision, and saves to MediaStock vault.
  */
 export async function POST(req: NextRequest) {
@@ -59,8 +119,48 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    // 2. Rehost video to Cloudinary Video bucket if external
-    let finalVideoUrl = videoUrl.trim();
+    const cleanOriginalUrl = videoUrl.trim();
+    const cleanSourceUrl = sourceUrl?.trim() || '';
+
+    // 2. Anti-Duplication Check (Save Cloudinary bandwidth & AI Vision tokens)
+    const duplicateQueries: any[] = [
+      { videoUrl: cleanOriginalUrl },
+      { originalVideoUrl: cleanOriginalUrl },
+    ];
+
+    if (cleanSourceUrl) {
+      duplicateQueries.push({ sourceUrl: cleanSourceUrl });
+      duplicateQueries.push({ notes: { $regex: escapeRegex(cleanSourceUrl), $options: 'i' } });
+    }
+
+    // Match root path of video to handle expiring CDN URL tokens (Meta/TikTok/Twitter)
+    const pathOnly = cleanOriginalUrl.split('?')[0];
+    if (pathOnly && pathOnly.length > 25) {
+      duplicateQueries.push({ originalVideoUrl: { $regex: escapeRegex(pathOnly), $options: 'i' } });
+      duplicateQueries.push({ videoUrl: { $regex: escapeRegex(pathOnly), $options: 'i' } });
+    }
+
+    const existingMedia = await MediaStock.findOne({ $or: duplicateQueries });
+    if (existingMedia) {
+      console.info(`⚡ [Anti-Duplikat] Video sudah ada di MediaStock! ID: ${existingMedia._id} ("${existingMedia.title}")`);
+      return NextResponse.json(
+        {
+          success: true,
+          isDuplicate: true,
+          message: `Video ini sudah ada di Stok Media sebelumnya ("${existingMedia.title}"). Otomatis dicegah duplikasi (hemat kuota & token AI).`,
+          mediaId: existingMedia._id,
+          title: existingMedia.title,
+          category: existingMedia.category,
+          videoUrl: existingMedia.videoUrl,
+          thumbnailUrl: existingMedia.thumbnailUrl,
+          visualContext: existingMedia.visualContext,
+        },
+        { headers: corsHeaders }
+      );
+    }
+
+    // 3. Rehost video to Cloudinary Video bucket if external
+    let finalVideoUrl = cleanOriginalUrl;
     if (!finalVideoUrl.includes('res.cloudinary.com')) {
       console.info(`☁️ [Extension Export] Re-hosting video to Cloudinary: ${finalVideoUrl}`);
       try {
@@ -70,7 +170,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Generate thumbnail if Cloudinary video
+    // 4. Generate thumbnail if Cloudinary video
     let finalThumbUrl = thumbnailUrl?.trim() || null;
     if (!finalThumbUrl && finalVideoUrl.includes('res.cloudinary.com')) {
       finalThumbUrl = finalVideoUrl
@@ -78,7 +178,7 @@ export async function POST(req: NextRequest) {
         .replace(/\.mp4$/i, '.jpg');
     }
 
-    // 4. Autonomous AI Vision Analysis
+    // 5. Autonomous AI Vision Analysis
     let visualContext: any = undefined;
     try {
       console.info(`👁️ [Extension Export] Running Autonomous AI Vision for: ${finalVideoUrl}...`);
@@ -86,13 +186,13 @@ export async function POST(req: NextRequest) {
         videoUrl: finalVideoUrl,
         title: title?.trim(),
         category: category && category !== 'AUTO' ? category : undefined,
-        notes: notes.trim() || (sourceUrl ? `Captured from web: ${sourceUrl}` : ''),
+        notes: notes.trim() || (cleanSourceUrl ? `Captured from web: ${cleanSourceUrl}` : ''),
       });
     } catch (visionErr) {
       console.warn('⚠️ [Extension Export] AI Vision non-blocking error:', visionErr);
     }
 
-    // 5. Resolve Title & Category
+    // 6. Resolve Title & Category
     const resolvedTitle =
       title?.trim() ||
       visualContext?.autoTitle ||
@@ -104,13 +204,15 @@ export async function POST(req: NextRequest) {
     if (candidateCategory === 'TECH') candidateCategory = 'TECH_MEME';
     const resolvedCategory = VALID_CATEGORIES.includes(candidateCategory) ? candidateCategory : 'GENERAL';
 
-    // 6. Save to Database
+    // 7. Save to Database
     const mediaItem = await MediaStock.create({
       title: resolvedTitle,
       videoUrl: finalVideoUrl,
+      originalVideoUrl: cleanOriginalUrl,
+      sourceUrl: cleanSourceUrl || null,
       thumbnailUrl: finalThumbUrl || '',
       category: resolvedCategory,
-      notes: notes?.trim() || (sourceUrl ? `Source: ${sourceUrl}` : ''),
+      notes: notes?.trim() || (cleanSourceUrl ? `Source: ${cleanSourceUrl}` : ''),
       visualContext: visualContext || undefined,
       active: true,
       timesUsed: 0,
@@ -121,11 +223,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
+        isDuplicate: false,
         message: 'Video berhasil diexport ke Stok Media Viral & dianalisis oleh AI Vision.',
         mediaId: mediaItem._id,
         title: resolvedTitle,
         category: resolvedCategory,
         videoUrl: finalVideoUrl,
+        thumbnailUrl: finalThumbUrl || '',
         visualContext,
       },
       { headers: corsHeaders }

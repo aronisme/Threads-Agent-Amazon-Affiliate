@@ -62,8 +62,31 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
+    const cleanVideoUrl = videoUrl.trim();
+    const duplicateQueries: any[] = [
+      { videoUrl: cleanVideoUrl },
+      { originalVideoUrl: cleanVideoUrl },
+    ];
+    const pathOnly = cleanVideoUrl.split('?')[0];
+    if (pathOnly && pathOnly.length > 25) {
+      const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      duplicateQueries.push({ originalVideoUrl: { $regex: escapeRegex(pathOnly), $options: 'i' } });
+      duplicateQueries.push({ videoUrl: { $regex: escapeRegex(pathOnly), $options: 'i' } });
+    }
+
+    const existing = await MediaStock.findOne({ $or: duplicateQueries });
+
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        isDuplicate: true,
+        message: `Video ini sudah ada di Stok Media sebelumnya ("${existing.title}").`,
+        item: existing,
+      });
+    }
+
     // 1. Rehost video to Cloudinary Video bucket if external
-    let finalVideoUrl = videoUrl.trim();
+    let finalVideoUrl = cleanVideoUrl;
     if (!finalVideoUrl.includes('res.cloudinary.com')) {
       console.info(`☁️ [MediaStock] Re-hosting stock video to Cloudinary: ${finalVideoUrl}`);
       finalVideoUrl = await cloudinaryUploader.rehostMedia(finalVideoUrl, 'video');
@@ -109,6 +132,7 @@ export async function POST(req: NextRequest) {
     const mediaItem = await MediaStock.create({
       title: resolvedTitle,
       videoUrl: finalVideoUrl,
+      originalVideoUrl: cleanVideoUrl,
       thumbnailUrl: finalThumbUrl,
       category: resolvedCategory,
       notes: notes.trim(),
