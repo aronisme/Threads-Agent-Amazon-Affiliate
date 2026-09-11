@@ -129,6 +129,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Export single video directly to MediaStock API
 async function exportVideoToMediaStock(endpoint, apiKey, videoData) {
+  // If endpoint or apiKey was not supplied, load saved settings from storage
+  if (!endpoint || !apiKey) {
+    try {
+      const stored = await chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey']);
+      if (!endpoint && stored.amazonScraperApiEndpoint) {
+        endpoint = stored.amazonScraperApiEndpoint;
+      }
+      if (!apiKey && stored.amazonScraperApiKey) {
+        apiKey = stored.amazonScraperApiKey;
+      }
+    } catch (storageErr) {
+      console.warn('Could not read chrome.storage in background:', storageErr);
+    }
+  }
+
   let targetUrl = endpoint || 'http://localhost:3000/api/media-stock/export';
   if (targetUrl.includes('/api/products/ingest')) {
     targetUrl = targetUrl.replace('/api/products/ingest', '/api/media-stock/export');
@@ -145,25 +160,35 @@ async function exportVideoToMediaStock(endpoint, apiKey, videoData) {
     'Authorization': `Bearer ${effectiveApiKey}`
   };
 
-  const response = await fetch(targetUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      videoUrl: videoData.videoUrl,
-      title: videoData.title || '',
-      sourceUrl: videoData.sourceUrl || '',
-      thumbnailUrl: videoData.thumbnailUrl || '',
-      category: videoData.category || 'AUTO',
-      notes: videoData.notes || ''
-    })
-  });
+  try {
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        videoUrl: videoData.videoUrl,
+        title: videoData.title || '',
+        sourceUrl: videoData.sourceUrl || '',
+        thumbnailUrl: videoData.thumbnailUrl || '',
+        category: videoData.category || 'AUTO',
+        notes: videoData.notes || ''
+      })
+    });
 
-  const resJson = await response.json();
-  if (!response.ok || !resJson.success) {
-    throw new Error(resJson.error || `HTTP ${response.status}: ${response.statusText}`);
+    const resJson = await response.json();
+    if (!response.ok || !resJson.success) {
+      if (response.status === 401) {
+        throw new Error('Kredensial API Ditolak (HTTP 401): Periksa API Key di pengaturan ekstensi agar cocok dengan CRON_SECRET.');
+      }
+      throw new Error(resJson.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return resJson;
+  } catch (err) {
+    if (err.message && (err.message.includes('Failed to fetch') || err.name === 'TypeError')) {
+      throw new Error(`Server offline / tidak terjangkau (${targetUrl}). Jalankan 'npm run dev' di terminal jika lokal, atau pilih target Prod (Vercel).`);
+    }
+    throw err;
   }
-
-  return resJson;
 }
 
 // Test reaching the API endpoint

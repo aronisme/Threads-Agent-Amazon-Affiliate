@@ -3,6 +3,11 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Global API Constants
+  const PROD_API_URL = 'https://threads-agent-amazon-affiliate.vercel.app/api/products/ingest';
+  const LOCAL_API_URL = 'http://localhost:3000/api/products/ingest';
+  const DEFAULT_API_KEY = 'threads_agent_secret_cron_key_999';
+
   // State
   let currentProduct = null;
   let selectedImages = new Set();
@@ -20,6 +25,103 @@ document.addEventListener('DOMContentLoaded', () => {
   const mainContentView = document.getElementById('mainContentView');
   const pageStatusBadge = document.getElementById('pageStatusBadge');
   const refreshBtn = document.getElementById('refreshBtn');
+
+  // Universal Video Detector Server Status Elements
+  const univServerDot = document.getElementById('univServerDot');
+  const univServerStatusText = document.getElementById('univServerStatusText');
+  const univBtnLocal = document.getElementById('univBtnLocal');
+  const univBtnProd = document.getElementById('univBtnProd');
+  const univPingBtn = document.getElementById('univPingBtn');
+  const universalServerWarning = document.getElementById('universalServerWarning');
+  const univSwitchToProdLink = document.getElementById('univSwitchToProdLink');
+
+  // Helper to fetch saved API Config from storage
+  function getStoredApiConfig() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey'], (result) => {
+        const endpoint = result.amazonScraperApiEndpoint || LOCAL_API_URL;
+        const apiKey = result.amazonScraperApiKey || DEFAULT_API_KEY;
+        resolve({ endpoint, apiKey });
+      });
+    });
+  }
+
+  // Check connection status in Universal Video view
+  function checkUniversalServerStatus(customEndpoint) {
+    chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey'], (result) => {
+      const endpoint = customEndpoint || result.amazonScraperApiEndpoint || LOCAL_API_URL;
+      const apiKey = result.amazonScraperApiKey || DEFAULT_API_KEY;
+      const isLocal = endpoint.includes('localhost') || endpoint.includes('127.0.0.1');
+
+      if (univBtnLocal && univBtnProd) {
+        if (isLocal) {
+          univBtnLocal.style.background = '#4f46e5';
+          univBtnLocal.style.color = '#fff';
+          univBtnProd.style.background = 'transparent';
+          univBtnProd.style.color = '#a1a1aa';
+        } else {
+          univBtnProd.style.background = '#4f46e5';
+          univBtnProd.style.color = '#fff';
+          univBtnLocal.style.background = 'transparent';
+          univBtnLocal.style.color = '#a1a1aa';
+        }
+      }
+
+      if (univServerDot) univServerDot.style.background = '#eab308';
+      if (univServerStatusText) univServerStatusText.textContent = `Pengecekan: ${isLocal ? 'Localhost (3000)' : 'Prod (Vercel)'}...`;
+
+      chrome.runtime.sendMessage({
+        action: 'TEST_API_CONNECTION',
+        endpoint,
+        apiKey
+      }, (res) => {
+        if (res && res.success) {
+          if (univServerDot) univServerDot.style.background = '#10b981';
+          if (univServerStatusText) univServerStatusText.textContent = `Aktif: ${isLocal ? 'Localhost (3000)' : 'Prod (Vercel)'}`;
+          if (universalServerWarning) universalServerWarning.classList.add('hidden');
+        } else {
+          if (univServerDot) univServerDot.style.background = '#ef4444';
+          if (univServerStatusText) univServerStatusText.textContent = `Offline: ${isLocal ? 'Localhost (3000)' : 'Prod (Vercel)'}`;
+          if (universalServerWarning) universalServerWarning.classList.remove('hidden');
+        }
+      });
+    });
+  }
+
+  // Wire Universal Server Buttons
+  if (univBtnLocal) {
+    univBtnLocal.addEventListener('click', () => {
+      chrome.storage.local.set({ amazonScraperApiEndpoint: LOCAL_API_URL });
+      if (apiEndpointInput) apiEndpointInput.value = LOCAL_API_URL;
+      checkUniversalServerStatus(LOCAL_API_URL);
+      showToast('Target diubah ke Localhost (3000)');
+    });
+  }
+
+  if (univBtnProd) {
+    univBtnProd.addEventListener('click', () => {
+      chrome.storage.local.set({ amazonScraperApiEndpoint: PROD_API_URL });
+      if (apiEndpointInput) apiEndpointInput.value = PROD_API_URL;
+      checkUniversalServerStatus(PROD_API_URL);
+      showToast('Target diubah ke Prod (Vercel)');
+    });
+  }
+
+  if (univPingBtn) {
+    univPingBtn.addEventListener('click', () => {
+      checkUniversalServerStatus();
+      showToast('Menguji koneksi server...');
+    });
+  }
+
+  if (univSwitchToProdLink) {
+    univSwitchToProdLink.addEventListener('click', () => {
+      chrome.storage.local.set({ amazonScraperApiEndpoint: PROD_API_URL });
+      if (apiEndpointInput) apiEndpointInput.value = PROD_API_URL;
+      checkUniversalServerStatus(PROD_API_URL);
+      showToast('Target diubah ke Prod (Vercel)');
+    });
+  }
 
   // Banner elements
   const bannerThumb = document.getElementById('bannerThumb');
@@ -197,6 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const hostname = tab.url ? new URL(tab.url).hostname : 'Web';
     detectedVideoSubtitle.textContent = `Memindai video di ${hostname}...`;
 
+    // Ping API server immediately to update connection badge & warn if offline
+    checkUniversalServerStatus();
+
     try {
       chrome.tabs.sendMessage(tab.id, { action: 'DETECT_PAGE_VIDEOS' }, async (response) => {
         if (chrome.runtime.lastError || !response || !response.success) {
@@ -244,17 +349,35 @@ document.addEventListener('DOMContentLoaded', () => {
     videos.forEach((v, idx) => {
       const card = document.createElement('div');
       card.className = 'video-card';
-      card.style.cssText = 'border: 1px solid #27272a; background: #141416; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;';
+      card.style.cssText = 'border: 1px solid #27272a; background: #141416; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s;';
+
+      const hasPoster = v.poster && v.poster.trim().length > 0;
 
       card.innerHTML = `
         <div style="display: flex; gap: 10px; align-items: center;">
-          <div style="width: 72px; height: 52px; background: #09090b; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; border: 1px solid #27272a;">
-            ${v.poster ? `<img src="${v.poster}" style="width: 100%; height: 100%; object-fit: cover;">` : `<svg style="width: 22px; height: 22px; color: #a1a1aa;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`}
-            ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px;">${v.duration}s</span>` : ''}
+          <div class="video-thumb-container" style="width: 88px; height: 58px; background: #09090b; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; border: 1px solid #27272a; cursor: pointer;" title="Klik untuk membuka/preview video">
+            ${hasPoster ? `
+              <img src="${v.poster}" alt="Thumbnail" class="video-thumb-img" style="width: 100%; height: 100%; object-fit: cover;">
+              <video src="${v.url}#t=0.5" preload="metadata" muted playsinline class="video-thumb-media" style="display: none; width: 100%; height: 100%; object-fit: cover;"></video>
+            ` : `
+              <video src="${v.url}#t=0.5" preload="metadata" muted playsinline class="video-thumb-media" style="width: 100%; height: 100%; object-fit: cover;"></video>
+              <div class="video-thumb-fallback" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: #18181b;">
+                <svg style="width: 20px; height: 20px; color: #71717a;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              </div>
+            `}
+            <div class="video-play-badge" style="position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.2s;">
+              <div style="width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.4);">
+                <svg style="width: 9px; height: 9px; color: #fff; margin-left: 2px;" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </div>
+            </div>
+            ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 600;">${v.duration}s</span>` : ''}
           </div>
           <div style="flex: 1; min-width: 0;">
             <h4 style="font-size: 11px; font-weight: 600; color: #f4f4f5; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${v.title}">${v.title || `Video #${idx + 1}`}</h4>
             <span style="font-size: 10px; color: #71717a; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.url}</span>
+            <span style="font-size: 9px; color: #a855f7; display: inline-block; margin-top: 3px;">✨ AI Vision Autodetect</span>
           </div>
         </div>
         <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; border-top: 1px solid #1f1f23; padding-top: 6px;">
@@ -267,6 +390,45 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
+      const thumbContainer = card.querySelector('.video-thumb-container');
+      const thumbImg = card.querySelector('.video-thumb-img');
+      const thumbVid = card.querySelector('.video-thumb-media');
+      const thumbFallback = card.querySelector('.video-thumb-fallback');
+      const playBadge = card.querySelector('.video-play-badge');
+
+      if (thumbImg && thumbVid) {
+        thumbImg.onerror = () => {
+          thumbImg.style.display = 'none';
+          thumbVid.style.display = 'block';
+        };
+      }
+      if (thumbVid) {
+        thumbVid.onerror = () => {
+          thumbVid.style.display = 'none';
+          if (thumbFallback) thumbFallback.style.display = 'flex';
+        };
+        // Mini animated preview on hover
+        thumbContainer.addEventListener('mouseenter', () => {
+          if (thumbImg) thumbImg.style.display = 'none';
+          thumbVid.style.display = 'block';
+          if (playBadge) playBadge.style.opacity = '0';
+          thumbVid.play().catch(() => {});
+        });
+        thumbContainer.addEventListener('mouseleave', () => {
+          thumbVid.pause();
+          if (playBadge) playBadge.style.opacity = '1';
+          if (thumbImg && thumbImg.style.display !== 'none') {
+            thumbVid.style.display = 'none';
+            thumbImg.style.display = 'block';
+          }
+        });
+      }
+
+      // Click thumbnail to preview video in a new tab
+      thumbContainer.addEventListener('click', () => {
+        chrome.tabs.create({ url: v.url });
+      });
+
       card.querySelector('.btn-copy-url').addEventListener('click', () => {
         navigator.clipboard.writeText(v.url);
         showToast('URL video disalin ke clipboard!');
@@ -278,8 +440,12 @@ document.addEventListener('DOMContentLoaded', () => {
         exportBtn.textContent = '⏳ Menyimpan...';
         showToast('Mengirim video ke Stok Media & AI Vision...', 4000);
 
+        const config = await getStoredApiConfig();
+
         chrome.runtime.sendMessage({
           action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
+          endpoint: config.endpoint,
+          apiKey: config.apiKey,
           videoUrl: v.url,
           title: v.title,
           sourceUrl: tab.url,
@@ -294,7 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
           } else {
             exportBtn.textContent = '🚀 Export ke Stok Media';
-            showToast(`Gagal: ${res?.error || 'Koneksi API gagal'}`, 4000);
+            const errMsg = res?.error || 'Koneksi API gagal';
+            showToast(`Gagal: ${errMsg}`, 5000);
+            if (universalServerWarning) universalServerWarning.classList.remove('hidden');
           }
         });
       });
@@ -317,9 +485,12 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Mengirim video ke Stok Media & AI Vision...', 4000);
 
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const config = await getStoredApiConfig();
 
       chrome.runtime.sendMessage({
         action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
+        endpoint: config.endpoint,
+        apiKey: config.apiKey,
         videoUrl: val,
         title: '',
         sourceUrl: activeTab?.url || '',
@@ -332,7 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
           manualVideoUrlInput.value = '';
           showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
         } else {
-          showToast(`Gagal: ${res?.error || 'Koneksi API gagal'}`, 4000);
+          const errMsg = res?.error || 'Koneksi API gagal';
+          showToast(`Gagal: ${errMsg}`, 5000);
+          if (universalServerWarning) universalServerWarning.classList.remove('hidden');
         }
       });
     });
@@ -1038,10 +1211,6 @@ ${(currentProduct.videos || []).map((v, i) => `[${i + 1}] ${v.title} -> ${v.mp4U
   });
 
   // --- Threads Agent Vault API Integration Logic ---
-  const PROD_API_URL = 'https://threads-agent-amazon-affiliate.vercel.app/api/products/ingest';
-  const LOCAL_API_URL = 'http://localhost:3000/api/products/ingest';
-  const DEFAULT_API_KEY = 'threads_agent_secret_cron_key_999';
-
   function updateApiBadge(text, className) {
     if (apiStatusBadge) {
       apiStatusBadge.textContent = text;
@@ -1062,7 +1231,7 @@ ${(currentProduct.videos || []).map((v, i) => `[${i + 1}] ${v.title} -> ${v.mp4U
 
   // Load saved API settings from chrome.storage
   chrome.storage.local.get(['amazonScraperApiEndpoint', 'amazonScraperApiKey'], (result) => {
-    const endpoint = result.amazonScraperApiEndpoint || PROD_API_URL;
+    const endpoint = result.amazonScraperApiEndpoint || LOCAL_API_URL;
     const apiKey = result.amazonScraperApiKey || DEFAULT_API_KEY;
 
     apiEndpointInput.value = endpoint;
@@ -1077,6 +1246,7 @@ ${(currentProduct.videos || []).map((v, i) => `[${i + 1}] ${v.title} -> ${v.mp4U
       apiEndpointInput.value = PROD_API_URL;
       updateEnvToggle(PROD_API_URL);
       chrome.storage.local.set({ amazonScraperApiEndpoint: PROD_API_URL });
+      checkUniversalServerStatus(PROD_API_URL);
       showToast('Beralih ke Endpoint Vercel (Prod)');
     });
   }
@@ -1086,6 +1256,7 @@ ${(currentProduct.videos || []).map((v, i) => `[${i + 1}] ${v.title} -> ${v.mp4U
       apiEndpointInput.value = LOCAL_API_URL;
       updateEnvToggle(LOCAL_API_URL);
       chrome.storage.local.set({ amazonScraperApiEndpoint: LOCAL_API_URL });
+      checkUniversalServerStatus(LOCAL_API_URL);
       showToast('Beralih ke Endpoint Localhost (3000)');
     });
   }

@@ -78,7 +78,7 @@
         seenUrls.add(candidateUrl);
 
         // Extract title context
-        const parentContext = vid.closest('article, [role="article"], .post, .feed-item, div');
+        const parentContext = vid.closest('article, [role="article"], .post, .feed-item, [data-testid="post-container"], div');
         const contextHeading = parentContext ? parentContext.querySelector('h1, h2, h3, p, span') : null;
 
         const title =
@@ -88,7 +88,41 @@
           document.title ||
           `Video #${index + 1}`;
 
-        const poster = resolveFullUrl(vid.poster || vid.getAttribute('data-poster') || '');
+        // Extract thumbnail/poster
+        let poster = resolveFullUrl(
+          vid.poster ||
+          vid.getAttribute('data-poster') ||
+          vid.getAttribute('data-thumb') ||
+          vid.getAttribute('thumbnail') ||
+          ''
+        );
+
+        // Fallback: check nearby thumbnail img tag in the same post/card container
+        if (!poster && parentContext) {
+          const candidateImg = parentContext.querySelector(
+            'img[src*="thumb"], img[src*="poster"], img[src*="preview"], img[src*="media"], img[alt*="thumbnail"], img[src^="http"]'
+          );
+          if (candidateImg && candidateImg.src && !candidateImg.src.startsWith('data:image/svg')) {
+            poster = resolveFullUrl(candidateImg.src);
+          }
+        }
+
+        // Fallback: try capturing canvas frame snapshot if video is loaded and not CORS-blocked
+        if (!poster && vid.videoWidth > 0 && vid.videoHeight > 0) {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.min(vid.videoWidth, 360);
+            canvas.height = Math.round((canvas.width / vid.videoWidth) * vid.videoHeight);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+            if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 300) {
+              poster = dataUrl;
+            }
+          } catch (e) {
+            // Tainted canvas on cross-origin video is expected; fallback handled by popup video element
+          }
+        }
 
         foundVideos.push({
           url: candidateUrl,
@@ -103,7 +137,29 @@
       }
     });
 
-    // 2. Scan links to MP4/WebM files on the page
+    // 2. Scan Reddit <shreddit-player> components
+    const shredditPlayers = Array.from(document.querySelectorAll('shreddit-player'));
+    shredditPlayers.forEach((sp, idx) => {
+      const spUrl = resolveFullUrl(sp.getAttribute('src') || sp.getAttribute('stream-url') || '');
+      const spPoster = resolveFullUrl(sp.getAttribute('poster') || sp.getAttribute('preview') || '');
+      if (spUrl && !seenUrls.has(spUrl) && !spUrl.startsWith('blob:')) {
+        seenUrls.add(spUrl);
+        const parentPost = sp.closest('article, [data-testid="post-container"]');
+        const postHeading = parentPost ? parentPost.querySelector('h1, h2, h3, [slot="title"]') : null;
+        foundVideos.push({
+          url: spUrl,
+          title: cleanString(postHeading?.innerText || document.title || `Reddit Video #${idx + 1}`).substring(0, 100),
+          poster: spPoster,
+          duration: null,
+          width: null,
+          height: null,
+          pageTitle: document.title,
+          sourcePage: window.location.href,
+        });
+      }
+    });
+
+    // 3. Scan links to MP4/WebM files on the page
     const mediaLinks = Array.from(document.querySelectorAll('a[href$=".mp4"], a[href$=".mov"], a[href$=".webm"]'));
     mediaLinks.forEach((a, idx) => {
       const fullUrl = resolveFullUrl(a.getAttribute('href'));
@@ -122,7 +178,7 @@
       }
     });
 
-    // 3. Scan meta tags for video og:video / twitter:player:stream
+    // 4. Scan meta tags for video og:video / twitter:player:stream
     const ogVideo =
       document.querySelector('meta[property="og:video"]')?.getAttribute('content') ||
       document.querySelector('meta[property="og:video:secure_url"]')?.getAttribute('content') ||
