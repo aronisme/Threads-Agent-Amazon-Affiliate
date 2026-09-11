@@ -35,7 +35,55 @@
       </div>
     </header>
 
-    <!-- State: Non-Amazon Page Warning -->
+    <!-- State: Universal Web Video Detector (Active on Non-Amazon pages: TikTok, Threads, Instagram, Reddit, YouTube, or Any Webpage) -->
+    <div id="universalVideoView" class="hidden" style="padding: 16px 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #27272a;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 6px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3); display: flex; align-items: center; justify-content: center;">
+            <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: #f4f4f5;">Detektor Video Web</h3>
+            <span id="detectedVideoSubtitle" style="font-size: 10px; color: #a1a1aa;">Memindai video di halaman ini...</span>
+          </div>
+        </div>
+        <span id="detectedVideoCountBadge" class="badge-pill badge-brand" style="font-size: 10px;">0 Video</span>
+      </div>
+
+      <!-- Quick Manual URL Input Box -->
+      <div style="background: rgba(24, 24, 27, 0.6); border: 1px solid #3f3f46; border-radius: 8px; padding: 10px; margin-bottom: 14px;">
+        <span style="font-size: 11px; font-weight: 600; color: #d4d4d8; display: block; margin-bottom: 6px;">Simpan URL Video Manual ke Stok:</span>
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="manualVideoUrlInput" class="affiliate-input" placeholder="https://.../video.mp4" style="font-size: 11px; padding: 6px 8px; flex: 1;">
+          <button id="exportManualVideoBtn" class="btn btn-primary btn-sm" type="button" style="white-space: nowrap; font-size: 11px; padding: 0 10px;">
+            Simpan
+          </button>
+        </div>
+      </div>
+
+      <!-- Detected Videos List Container -->
+      <div style="margin-bottom: 8px;">
+        <span style="font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px;">Video Ditemukan di Halaman:</span>
+      </div>
+      <div id="detectedVideosList" style="display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; padding-right: 2px;">
+        <!-- Dynamically rendered detected video cards -->
+      </div>
+
+      <!-- Empty State when 0 videos found -->
+      <div id="noWebVideosFound" class="empty-state hidden" style="padding: 24px 12px; text-align: center;">
+        <div class="empty-icon warning-icon" style="margin: 0 auto 10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h4 style="font-size: 13px; font-weight: 600; color: #e4e4e7; margin: 0 0 4px;">Tidak Ada Video Terdeteksi Langsung</h4>
+        <p style="font-size: 11px; color: #a1a1aa; margin: 0;">Situs ini mungkin memutar video via streaming khusus (Blob/HLS). Anda bisa copy direct URL video lalu paste pada kolom manual di atas.</p>
+      </div>
+    </div>
+
+    <!-- State: Non-Amazon Fallback Warning -->
     <div id="notAmazonView" class="empty-state hidden">
       <div class="empty-icon warning-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -45,7 +93,7 @@
         </svg>
       </div>
       <h3>Bukan Halaman Amazon</h3>
-      <p>Buka halaman detail produk di Amazon (misal: amazon.com/dp/...) lalu buka kembali ekstensi ini.</p>
+      <p>Buka halaman detail produk di Amazon atau buka halaman yang memiliki video.</p>
     </div>
 
     <!-- State: Loading Spinner -->

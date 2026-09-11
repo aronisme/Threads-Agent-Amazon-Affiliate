@@ -1,12 +1,19 @@
 import { SocialAction, IAgentState } from '@/types';
 import Post from '@/db/models/Post';
 import connectToDatabase from '@/db/client';
+import trendRadar from '@/lib/radar/trendRadar';
 
 export interface SocialDecision {
   action: SocialAction;
   reason: string;
   candidateTopic?: string;
   selectedPostType?: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT' | 'VIRAL_MEDIA';
+  trendContext?: {
+    title: string;
+    summary?: string;
+    source: string;
+    sourceUrl?: string;
+  };
 }
 
 /**
@@ -67,15 +74,35 @@ export class SocialEngine {
       };
     }
 
-    // 3. Select topic from persona's niche
-    const availableTopics = state.persona.nicheTopics.length > 0
-      ? state.persona.nicheTopics
-      : ['desk setup', 'gadgets', 'work from home'];
+    // 3. Select topic: Prioritize Live US Viral Trends (Google Trends & Reddit)
+    let chosenTopic = '';
+    let liveTrendContext: any = undefined;
 
-    // Filter out recently covered topics to ensure variety
-    const freshTopics = availableTopics.filter((t) => !state.recentTopics.slice(0, 5).includes(t));
-    const pool = freshTopics.length > 0 ? freshTopics : availableTopics;
-    const chosenTopic = pool[Math.floor(Math.random() * pool.length)];
+    try {
+      const hotTrend = await trendRadar.getHotUSTopic(state.recentTopics || []);
+      if (hotTrend) {
+        chosenTopic = hotTrend.title;
+        liveTrendContext = {
+          title: hotTrend.title,
+          summary: hotTrend.summary,
+          source: hotTrend.source,
+          sourceUrl: hotTrend.sourceUrl,
+        };
+      }
+    } catch (trendErr) {
+      console.warn('⚠️ [SocialEngine] TrendRadar lookup fallback to niche topics:', trendErr);
+    }
+
+    if (!chosenTopic) {
+      const availableTopics = state.persona.nicheTopics.length > 0
+        ? state.persona.nicheTopics
+        : ['desk setup', 'gadgets', 'work from home'];
+
+      // Filter out recently covered topics to ensure variety
+      const freshTopics = availableTopics.filter((t) => !state.recentTopics.slice(0, 5).includes(t));
+      const pool = freshTopics.length > 0 ? freshTopics : availableTopics;
+      chosenTopic = pool[Math.floor(Math.random() * pool.length)];
+    }
 
     // 4. Select post archetype naturally
     // Product contextual post is only a possibility if product cooldown is clear
@@ -103,9 +130,10 @@ export class SocialEngine {
 
     return {
       action: 'POST',
-      reason: `Social cadence ready. Selected archetype: ${postType} on topic: "${chosenTopic}"`,
+      reason: `Social cadence ready. Selected archetype: ${postType} on topic: "${chosenTopic}"${liveTrendContext ? ` [US Trend: ${liveTrendContext.source}]` : ''}`,
       candidateTopic: chosenTopic,
       selectedPostType: postType,
+      trendContext: liveTrendContext,
     };
   }
 }

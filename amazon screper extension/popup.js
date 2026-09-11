@@ -10,6 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const loadingView = document.getElementById('loadingView');
   const notAmazonView = document.getElementById('notAmazonView');
+  const universalVideoView = document.getElementById('universalVideoView');
+  const detectedVideoSubtitle = document.getElementById('detectedVideoSubtitle');
+  const detectedVideoCountBadge = document.getElementById('detectedVideoCountBadge');
+  const manualVideoUrlInput = document.getElementById('manualVideoUrlInput');
+  const exportManualVideoBtn = document.getElementById('exportManualVideoBtn');
+  const detectedVideosList = document.getElementById('detectedVideosList');
+  const noWebVideosFound = document.getElementById('noWebVideosFound');
   const mainContentView = document.getElementById('mainContentView');
   const pageStatusBadge = document.getElementById('pageStatusBadge');
   const refreshBtn = document.getElementById('refreshBtn');
@@ -131,11 +138,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (!tab || !isAmazonUrl(tab.url)) {
+    if (!tab) {
       loadingView.classList.add('hidden');
       notAmazonView.classList.remove('hidden');
       pageStatusBadge.className = 'status-badge status-error';
-      pageStatusBadge.textContent = 'Bukan Amazon';
+      pageStatusBadge.textContent = 'Tab Kosong';
+      return;
+    }
+
+    // If active tab is NOT Amazon, run Universal Video Detector mode!
+    if (!isAmazonUrl(tab.url)) {
+      initUniversalVideoDetector(tab);
       return;
     }
 
@@ -170,6 +183,159 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       showError(err.message);
     }
+  }
+
+  // Universal Video Detector for all web pages (TikTok, Threads, Instagram, Reddit, YouTube, etc.)
+  async function initUniversalVideoDetector(tab) {
+    loadingView.classList.add('hidden');
+    notAmazonView.classList.add('hidden');
+    mainContentView.classList.add('hidden');
+    universalVideoView.classList.remove('hidden');
+
+    pageStatusBadge.className = 'status-badge status-brand';
+    pageStatusBadge.textContent = 'Detektor Video';
+    const hostname = tab.url ? new URL(tab.url).hostname : 'Web';
+    detectedVideoSubtitle.textContent = `Memindai video di ${hostname}...`;
+
+    try {
+      chrome.tabs.sendMessage(tab.id, { action: 'DETECT_PAGE_VIDEOS' }, async (response) => {
+        if (chrome.runtime.lastError || !response || !response.success) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['videoSniffer.js']
+            });
+
+            setTimeout(() => {
+              chrome.tabs.sendMessage(tab.id, { action: 'DETECT_PAGE_VIDEOS' }, (res2) => {
+                if (res2 && res2.success) {
+                  renderDetectedWebVideos(res2.videos || [], tab);
+                } else {
+                  renderDetectedWebVideos([], tab);
+                }
+              });
+            }, 300);
+          } catch (e) {
+            renderDetectedWebVideos([], tab);
+          }
+        } else {
+          renderDetectedWebVideos(response.videos || [], tab);
+        }
+      });
+    } catch (err) {
+      renderDetectedWebVideos([], tab);
+    }
+  }
+
+  function renderDetectedWebVideos(videos, tab) {
+    detectedVideosList.innerHTML = '';
+    const total = videos ? videos.length : 0;
+    detectedVideoCountBadge.textContent = `${total} Video`;
+    const host = tab.url ? new URL(tab.url).hostname : 'Halaman Web';
+    detectedVideoSubtitle.textContent = `${host} (${total} video terdeteksi)`;
+
+    if (!videos || videos.length === 0) {
+      noWebVideosFound.classList.remove('hidden');
+      return;
+    }
+
+    noWebVideosFound.classList.add('hidden');
+
+    videos.forEach((v, idx) => {
+      const card = document.createElement('div');
+      card.className = 'video-card';
+      card.style.cssText = 'border: 1px solid #27272a; background: #141416; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;';
+
+      card.innerHTML = `
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <div style="width: 72px; height: 52px; background: #09090b; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; border: 1px solid #27272a;">
+            ${v.poster ? `<img src="${v.poster}" style="width: 100%; height: 100%; object-fit: cover;">` : `<svg style="width: 22px; height: 22px; color: #a1a1aa;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`}
+            ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px;">${v.duration}s</span>` : ''}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h4 style="font-size: 11px; font-weight: 600; color: #f4f4f5; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${v.title}">${v.title || `Video #${idx + 1}`}</h4>
+            <span style="font-size: 10px; color: #71717a; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.url}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; border-top: 1px solid #1f1f23; padding-top: 6px;">
+          <button class="btn btn-sm btn-ghost btn-copy-url" type="button" style="font-size: 10px; padding: 3px 8px;">
+            Salin URL
+          </button>
+          <button class="btn btn-sm btn-primary btn-export-stock" type="button" style="font-size: 10px; padding: 4px 10px; background: linear-gradient(135deg, #9333ea, #db2777); border: none;">
+            🚀 Export ke Stok Media
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-copy-url').addEventListener('click', () => {
+        navigator.clipboard.writeText(v.url);
+        showToast('URL video disalin ke clipboard!');
+      });
+
+      const exportBtn = card.querySelector('.btn-export-stock');
+      exportBtn.addEventListener('click', async () => {
+        exportBtn.disabled = true;
+        exportBtn.textContent = '⏳ Menyimpan...';
+        showToast('Mengirim video ke Stok Media & AI Vision...', 4000);
+
+        chrome.runtime.sendMessage({
+          action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
+          videoUrl: v.url,
+          title: v.title,
+          sourceUrl: tab.url,
+          thumbnailUrl: v.poster,
+          category: 'AUTO',
+          notes: `Exported via Universal Web Sniffer from ${tab.url}`,
+        }, (res) => {
+          exportBtn.disabled = false;
+          if (res && res.success) {
+            exportBtn.textContent = '✅ Tersimpan!';
+            exportBtn.style.background = '#059669';
+            showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
+          } else {
+            exportBtn.textContent = '🚀 Export ke Stok Media';
+            showToast(`Gagal: ${res?.error || 'Koneksi API gagal'}`, 4000);
+          }
+        });
+      });
+
+      detectedVideosList.appendChild(card);
+    });
+  }
+
+  // Handle Manual Video URL Export
+  if (exportManualVideoBtn && manualVideoUrlInput) {
+    exportManualVideoBtn.addEventListener('click', async () => {
+      const val = (manualVideoUrlInput.value || '').trim();
+      if (!val || !val.startsWith('http')) {
+        showToast('Masukkan URL video yang valid (diawali http:// atau https://)', 3000);
+        return;
+      }
+
+      exportManualVideoBtn.disabled = true;
+      exportManualVideoBtn.textContent = '⏳ Menyimpan...';
+      showToast('Mengirim video ke Stok Media & AI Vision...', 4000);
+
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      chrome.runtime.sendMessage({
+        action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
+        videoUrl: val,
+        title: '',
+        sourceUrl: activeTab?.url || '',
+        category: 'AUTO',
+        notes: `Manual URL input from extension`,
+      }, (res) => {
+        exportManualVideoBtn.disabled = false;
+        exportManualVideoBtn.textContent = 'Simpan';
+        if (res && res.success) {
+          manualVideoUrlInput.value = '';
+          showToast(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media!`, 4500);
+        } else {
+          showToast(`Gagal: ${res?.error || 'Koneksi API gagal'}`, 4000);
+        }
+      });
+    });
   }
 
   function showError(msg) {
@@ -575,11 +741,40 @@ document.addEventListener('DOMContentLoaded', () => {
           ` : `
             <span style="font-size:10px;color:var(--text-muted)">Stream HLS</span>
           `}
+          <button class="icon-button btn-export-stock-single" title="Export ke Stok Media Viral" style="color: #c084fc;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          </button>
           <button class="icon-button btn-copy-video" title="Salin URL Video">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           </button>
         </div>
       `;
+
+      // Export Amazon video to MediaStock
+      const exportStockBtn = card.querySelector('.btn-export-stock-single');
+      if (exportStockBtn && (v.mp4Url || v.hlsUrl)) {
+        exportStockBtn.addEventListener('click', () => {
+          const videoUrl = v.mp4Url || v.hlsUrl;
+          exportStockBtn.style.opacity = '0.5';
+          showToast('Mengirim video ke Stok Media & AI Vision...', 3000);
+          chrome.runtime.sendMessage({
+            action: 'EXPORT_VIDEO_TO_MEDIA_STOCK',
+            videoUrl: videoUrl,
+            title: v.title,
+            sourceUrl: window.location.href,
+            thumbnailUrl: v.thumbnail,
+            category: 'AUTO',
+            notes: `Exported from Amazon product ${asin || ''}`
+          }, (res) => {
+            exportStockBtn.style.opacity = '1';
+            if (res && res.success) {
+              showToast(`✅ Video "${res.title || 'Produk'}" berhasil masuk Stok Media!`, 4000);
+            } else {
+              showToast(`Gagal: ${res?.error || 'Koneksi error'}`, 4000);
+            }
+          });
+        });
+      }
 
       // Download single MP4
       const dlBtn = card.querySelector('.btn-dl-video');

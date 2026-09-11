@@ -14,6 +14,8 @@ import {
   ExternalLink,
   Compass,
   Power,
+  Radio,
+  TrendingUp,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
@@ -22,6 +24,7 @@ export default function DashboardPage() {
   const [state, setState] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [productsCount, setProductsCount] = useState<number>(0);
+  const [trends, setTrends] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [lastActionOutput, setLastActionOutput] = useState<any>(null);
@@ -29,19 +32,39 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [stateRes, postsRes, productsRes] = await Promise.all([
+      const [stateRes, postsRes, productsRes, trendsRes] = await Promise.all([
         fetch('/api/state').then((r) => r.json()),
         fetch('/api/posts?limit=8').then((r) => r.json()),
         fetch('/api/products').then((r) => r.json()),
+        fetch('/api/trends?limit=8').then((r) => r.json()),
       ]);
 
       if (stateRes.success) setState(stateRes.state);
       if (postsRes.success) setPosts(postsRes.posts);
       if (productsRes.success) setProductsCount(productsRes.products?.length || 0);
+      if (trendsRes.success) setTrends(trendsRes.items || []);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncTrends = async () => {
+    try {
+      setActionLoading('syncTrends');
+      const res = await fetch('/api/trends/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setTrends(data.items || []);
+        alert(data.message);
+      } else {
+        alert(data.error || 'Gagal menyinkronkan tren');
+      }
+    } catch (err: any) {
+      alert('Error syncing trends: ' + err.message);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -451,6 +474,72 @@ export default function DashboardPage() {
 
         {/* Right Column: Topics on Agent's Mind & Memory */}
         <div className="space-y-6">
+          {/* US Viral Trend Radar Card */}
+          <div className="glass-card rounded-xl p-5 space-y-4 border border-blue-500/30 bg-gradient-to-b from-blue-950/20 to-transparent">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold tracking-wide text-blue-400 uppercase flex items-center gap-2">
+                <Radio className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+                {language === 'id' ? '📡 Radar Tren Viral AS' : '📡 US Viral Trend Radar'}
+              </h3>
+              <button
+                onClick={handleSyncTrends}
+                disabled={actionLoading !== null}
+                className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition border border-blue-500/30 flex items-center gap-1.5 disabled:opacity-50"
+                title="Sinkronisasi tren terbaru dari Google Trends US & Reddit"
+              >
+                <RotateCw className={`w-2.5 h-2.5 ${actionLoading === 'syncTrends' ? 'animate-spin' : ''}`} />
+                {actionLoading === 'syncTrends' ? 'Syncing...' : 'Sync Radar'}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-zinc-400">
+              {language === 'id'
+                ? 'Topik viral live dari Google Trends US & Reddit (r/battlestations, r/gadgets).'
+                : 'Live US viral topics from Google Trends US & Reddit communities.'}
+            </p>
+
+            <div className="space-y-2">
+              {trends.length === 0 ? (
+                <div className="text-center py-4 text-xs text-zinc-500">
+                  {language === 'id' ? 'Memuat radar tren AS...' : 'Loading US trends...'}
+                </div>
+              ) : (
+                trends.slice(0, 5).map((trend: any, idx: number) => (
+                  <div
+                    key={trend._id || idx}
+                    className="p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700 transition space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span
+                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${
+                          trend.source === 'GOOGLE_TRENDS'
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            : trend.source === 'REDDIT'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        }`}
+                      >
+                        {trend.source === 'GOOGLE_TRENDS'
+                          ? 'Google Trends US'
+                          : trend.source === 'REDDIT'
+                          ? 'Reddit US'
+                          : 'Google News'}
+                      </span>
+                      {trend.timesReferenced > 0 && (
+                        <span className="text-[9px] text-zinc-500">
+                          {trend.timesReferenced}x dipakai
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-200 font-medium leading-snug line-clamp-2">
+                      {trend.title}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           <div className="glass-card rounded-xl p-5 space-y-4">
             <h3 className="text-xs font-semibold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
               <Compass className="w-3.5 h-3.5 text-blue-400" />

@@ -3,6 +3,8 @@ import { JobDocument } from '@/db/models/Job';
 import Post from '@/db/models/Post';
 import Product from '@/db/models/Product';
 import MediaStock from '@/db/models/MediaStock';
+import TrendTopic from '@/db/models/TrendTopic';
+import trendRadar from '@/lib/radar/trendRadar';
 import stateManager from '@/lib/memory/stateManager';
 import memoryEngine from '@/lib/memory/memoryEngine';
 import aiEngine from '@/lib/ai/groqRotator';
@@ -54,6 +56,7 @@ export class WorkerRunner {
   private async handleComposePost(job: JobDocument, state: any, threadsClient: ThreadsClient) {
     let postType: PostType = job.payload.type;
     let chosenTopic: string = job.payload.topic;
+    let trendContext: any = job.payload.trendContext;
     let targetProduct: any = null;
 
     // 1. If post type is not strictly specified, run SocialEngine decision
@@ -73,6 +76,7 @@ export class WorkerRunner {
 
       postType = socialDecision.selectedPostType || 'ORIGINAL_THOUGHT';
       chosenTopic = socialDecision.candidateTopic || 'desk setup';
+      trendContext = trendContext || socialDecision.trendContext;
     }
 
     const conn = await connectToDatabase();
@@ -191,6 +195,7 @@ export class WorkerRunner {
     const userPrompt = buildContentPrompt(postType, chosenTopic, targetProduct, recentSummary, {
       mediaType,
       visualContext: postType === 'VIRAL_MEDIA' ? targetMediaStock?.visualContext : targetProduct?.visualContext,
+      trendContext,
     });
 
     const aiRes = await aiEngine.generate({
@@ -295,6 +300,16 @@ export class WorkerRunner {
       targetMediaStock.timesUsed = (targetMediaStock.timesUsed || 0) + 1;
       targetMediaStock.lastUsedAt = new Date();
       await targetMediaStock.save();
+    }
+
+    // Record usage on TrendTopic if applicable
+    if (chosenTopic) {
+      try {
+        await TrendTopic.updateOne(
+          { title: chosenTopic },
+          { $inc: { timesReferenced: 1 }, $set: { lastUsedAt: new Date() } }
+        );
+      } catch {}
     }
 
     if (targetProduct) {
@@ -531,30 +546,25 @@ export class WorkerRunner {
   }
 
   /**
-   * Handle topic and question discovery based on niche
+   * Handle topic and question discovery based on niche & US Trend Radar
    */
   private async handleDiscoverTopics(job: JobDocument, state: any) {
-    const sysPrompt = `You are an organic Threads trend explorer. Provide 3 fresh, provocative, or relatable conversation hooks for a creator in these niches: ${state.persona.nicheTopics.join(', ')}. Format as JSON array of strings.`;
-
-    const aiRes = await aiEngine.generate({
-      messages: [{ role: 'user', content: sysPrompt }],
-      temperature: 0.9,
-      maxTokens: 300,
-    });
-
     try {
-      const cleaned = aiRes.text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleaned);
-      if (Array.isArray(parsed)) {
-        for (const topic of parsed) {
-          if (typeof topic === 'string' && !state.recentTopics.includes(topic)) {
-            state.recentTopics.unshift(topic);
+      console.info('📡 [Worker] Running DISCOVER_TOPICS via US Trend Radar (Google Trends & Reddit)...');
+      const syncResult = await trendRadar.syncUSTrends();
+      if (syncResult.items && syncResult.items.length > 0) {
+        for (const item of syncResult.items) {
+          if (item.title && !state.recentTopics.includes(item.title)) {
+            state.recentTopics.unshift(item.title);
           }
+        }
+        if (state.recentTopics.length > 20) {
+          state.recentTopics = state.recentTopics.slice(0, 20);
         }
         await state.save();
       }
-    } catch {
-      // Ignore parse failure on discovery
+    } catch (err: any) {
+      console.warn('⚠️ [Worker] Error syncing US trends in handleDiscoverTopics:', err.message);
     }
 
     return { success: true };

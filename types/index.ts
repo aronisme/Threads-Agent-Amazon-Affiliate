@@ -290,3 +290,20 @@ export interface IAgentState {
   updatedAt: Date;
 }
 
+export interface ITrendTopic {
+  _id?: string;
+  title: string;
+  summary: string;
+  source: 'GOOGLE_TRENDS' | 'REDDIT' | 'GOOGLE_NEWS';
+  sourceUrl?: string;
+  category: 'TECH' | 'DESK_SETUP' | 'GADGET' | 'WORK_LIFE' | 'VIRAL';
+  region: string;
+  score: number;
+  timesReferenced: number;
+  lastUsedAt?: Date | null;
+  fetchedAt: Date;
+  active: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+

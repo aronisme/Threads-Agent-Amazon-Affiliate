@@ -52,6 +52,11 @@
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["videoSniffer.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {

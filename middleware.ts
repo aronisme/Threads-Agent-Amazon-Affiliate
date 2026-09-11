@@ -19,6 +19,7 @@ export async function middleware(req: NextRequest) {
     pathname === '/login' ||
     pathname.startsWith('/api/auth') ||
     pathname === '/api/products/ingest' || // Protected via x-api-key for Chrome Extension
+    pathname === '/api/media-stock/export' || // Protected via x-api-key for Chrome Extension Video Export
     pathname.startsWith('/api/cron') // Protected via CRON_SECRET / Bearer token
   ) {
     // If authenticated user tries to visit /login, redirect to /dashboard

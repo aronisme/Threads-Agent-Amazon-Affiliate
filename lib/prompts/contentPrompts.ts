@@ -8,11 +8,26 @@ export function buildContentPrompt(
   options?: {
     mediaType?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'CAROUSEL';
     visualContext?: IVisualContext;
+    trendContext?: {
+      title: string;
+      summary?: string;
+      source: string;
+      sourceUrl?: string;
+    };
   }
 ): string {
   let instruction = '';
   const mediaType = options?.mediaType || 'TEXT';
   const visual = options?.visualContext || productKnowledge?.visualContext;
+  const trendContext = options?.trendContext;
+
+  const trendBlock = trendContext
+    ? `
+🔥 REAL-TIME US VIRAL TREND CONTEXT (Trending in US on ${trendContext.source}):
+- Trending Topic: "${trendContext.title}"
+- Background: ${trendContext.summary || 'High engagement topic today'}
+CREATOR TAKE: React to this US trending discussion naturally like an authentic tech/desk creator sharing an impromptu thought or asking your community's opinion. NEVER sound like a formal news reporter.`
+    : '';
 
   switch (type) {
     case 'VIRAL_MEDIA':
@@ -25,7 +40,7 @@ ATTACHED VIDEO SCENE (Analyzed by AI Vision):
         : '';
 
       instruction = `You are sharing a short, viral, funny, or satisfying video clip on Threads related to "${topic}".
-${viralVisualBlock}
+${viralVisualBlock}${trendBlock}
 
 TASK: Write a witty, scroll-stopping caption that complements this video.
 HUMAN CREATOR RULES:
@@ -37,13 +52,13 @@ HUMAN CREATOR RULES:
       break;
 
     case 'ORIGINAL_THOUGHT':
-      instruction = `Create a spontaneous, relatable original thought about "${topic}".
+      instruction = `Create a spontaneous, relatable original thought about "${topic}".${trendBlock}
 Make it sound like a realization you just had today while working or chilling.
 Keep it under 280 characters. No promotional content.`;
       break;
 
     case 'QUESTION':
-      instruction = `Ask an engaging, open-ended question about "${topic}" that invites people to share their personal setup, habit, or opinion.
+      instruction = `Ask an engaging, open-ended question about "${topic}" that invites people to share their personal setup, habit, or opinion.${trendBlock}
 It should be easy to answer in 1-2 sentences. Avoid generic boring questions.`;
       break;
 

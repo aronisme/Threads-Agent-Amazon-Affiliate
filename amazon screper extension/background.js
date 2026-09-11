@@ -116,7 +116,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true;
   }
+
+  if (request.action === 'EXPORT_VIDEO_TO_MEDIA_STOCK') {
+    const { endpoint, apiKey, videoUrl, title, sourceUrl, thumbnailUrl, category, notes } = request;
+    exportVideoToMediaStock(endpoint, apiKey, { videoUrl, title, sourceUrl, thumbnailUrl, category, notes })
+      .then(result => sendResponse(result))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+
+    return true;
+  }
 });
+
+// Export single video directly to MediaStock API
+async function exportVideoToMediaStock(endpoint, apiKey, videoData) {
+  let targetUrl = endpoint || 'http://localhost:3000/api/media-stock/export';
+  if (targetUrl.includes('/api/products/ingest')) {
+    targetUrl = targetUrl.replace('/api/products/ingest', '/api/media-stock/export');
+  } else if (!targetUrl.includes('/api/media-stock/export')) {
+    targetUrl = `${targetUrl.replace(/\/+$/, '')}/api/media-stock/export`;
+  }
+
+  const effectiveApiKey = apiKey ? apiKey.trim() : 'threads_agent_secret_cron_key_999';
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
+    'x-api-key': effectiveApiKey,
+    'Authorization': `Bearer ${effectiveApiKey}`
+  };
+
+  const response = await fetch(targetUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      videoUrl: videoData.videoUrl,
+      title: videoData.title || '',
+      sourceUrl: videoData.sourceUrl || '',
+      thumbnailUrl: videoData.thumbnailUrl || '',
+      category: videoData.category || 'AUTO',
+      notes: videoData.notes || ''
+    })
+  });
+
+  const resJson = await response.json();
+  if (!response.ok || !resJson.success) {
+    throw new Error(resJson.error || `HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return resJson;
+}
 
 // Test reaching the API endpoint
 async function testApiConnection(endpoint, apiKey) {
