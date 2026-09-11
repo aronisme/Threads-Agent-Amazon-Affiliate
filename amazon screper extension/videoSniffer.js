@@ -205,6 +205,171 @@
     return cleanString(title);
   }
 
+  // --- VIRAL STOCK VIDEO RULES ---
+  // Threads viral clips & hooks are limited to maximum 90 seconds (1.5 minutes)
+  const MAX_ALLOWED_DURATION_SECONDS = 90;
+
+  // --- STREAMING / BLOB REAL VIDEO RESOLVERS ---
+  // Resolves direct stream/MP4 URLs from MediaSource blob: streams (RedNote/Xiaohongshu, TikTok, Instagram, Twitter, etc.)
+
+  // 1. Extract from RedNote / Xiaohongshu JSON state and script tags
+  function extractRedNoteVideoUrl() {
+    try {
+      const scripts = Array.from(document.querySelectorAll('script'));
+      for (const s of scripts) {
+        const text = s.textContent || '';
+        if (!text) continue;
+
+        // Direct xhscdn / sns-video MP4 match
+        const matchCdn = text.match(/https?:\/\/[a-zA-Z0-9-.]*(?:xhscdn\.com|xiaohongshu\.com)[^\s"'\\]*\.mp4[^\s"'\\]*/i) ||
+                         text.match(/https?:\/\/[a-zA-Z0-9-.]*sns-video[^\s"'\\]*\.mp4[^\s"'\\]*/i);
+        if (matchCdn) {
+          let u = matchCdn[0].replace(/\\u002F/gi, '/').replace(/\\/g, '');
+          if (u.startsWith('http')) return u;
+        }
+
+        // Match "masterUrl" or "backupUrl" in __INITIAL_STATE__
+        const matchMaster = text.match(/"masterUrl"\s*:\s*"([^"]+)"/i) ||
+                            text.match(/"backupUrl"\s*:\s*\[\s*"([^"]+)"/i);
+        if (matchMaster && matchMaster[1]) {
+          let u = matchMaster[1].replace(/\\u002F/gi, '/').replace(/\\/g, '');
+          if (u.startsWith('http')) return u;
+          if (u.includes('.mp4') || u.includes('stream')) {
+            return `https://sns-video-bd.xhscdn.com/${u.replace(/^\/+/, '')}`;
+          }
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  // 2. Extract from standard DOM Meta tags & Preloads
+  function extractMetaVideoUrl() {
+    try {
+      const selectors = [
+        'meta[property="og:video"]',
+        'meta[property="og:video:url"]',
+        'meta[property="og:video:secure_url"]',
+        'meta[name="twitter:player:stream"]',
+        'link[rel="preload"][as="video"]',
+      ];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        const content = el?.getAttribute('content') || el?.getAttribute('href') || '';
+        if (content && content.startsWith('http') && !content.startsWith('blob:') && !content.includes('.m3u8')) {
+          return content;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  // 3. Extract from window.performance resource timing entries
+  function extractPerformanceVideoUrl() {
+    try {
+      const entries = window.performance.getEntriesByType('resource') || [];
+      // Search most recent requests first
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const name = entries[i].name || '';
+        if (!name || name.startsWith('blob:') || name.startsWith('data:')) continue;
+
+        // Known media CDNs
+        if (name.includes('xhscdn.com') && (name.includes('.mp4') || name.includes('sns-video'))) {
+          return name;
+        }
+        if ((name.includes('tiktokcdn.com') || name.includes('byteoversea.com')) && name.includes('.mp4')) {
+          return name;
+        }
+        if ((name.includes('cdninstagram.com') || name.includes('fbcdn.net')) && name.includes('.mp4')) {
+          return name;
+        }
+        if (name.includes('twimg.com') && name.includes('.mp4')) {
+          return name;
+        }
+        if (name.includes('v.redd.it') && name.includes('.mp4')) {
+          return name;
+        }
+        if (name.match(/\.(mp4|webm|mov)(\?.*)?$/i)) {
+          return name;
+        }
+        if (entries[i].initiatorType === 'media' && !name.includes('.m3u8')) {
+          return name;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  // 4. Ask background worker for media intercepted via chrome.webRequest
+  function askBackgroundForSniffedMedia() {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ action: 'GET_TAB_SNIFFED_VIDEOS' }, (res) => {
+          if (res && res.success && Array.isArray(res.videos) && res.videos.length > 0) {
+            resolve(res.videos[res.videos.length - 1]);
+          } else {
+            resolve('');
+          }
+        });
+      } catch (e) {
+        resolve('');
+      }
+    });
+  }
+
+  // 5. Scan generic script tags for MP4 URLs
+  function scanScriptsForVideoUrl() {
+    try {
+      const scripts = Array.from(document.querySelectorAll('script'));
+      for (const s of scripts) {
+        const text = s.textContent || '';
+        if (!text || text.length > 500000) continue;
+        const match = text.match(/https?:\/\/[a-zA-Z0-9-.]+\/[^\s"'\\]+\.mp4(?:\?[^\s"'\\]*)?/i);
+        if (match) {
+          let u = match[0].replace(/\\u002F/gi, '/').replace(/\\/g, '');
+          if (u.startsWith('http')) return u;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  // Comprehensive Real Video URL Resolver
+  async function resolveRealVideoUrl(vid) {
+    let directUrl = vid.currentSrc || vid.src || '';
+    if (!directUrl) {
+      const s = vid.querySelector('source');
+      if (s) directUrl = s.getAttribute('src') || '';
+    }
+    if (!directUrl) {
+      directUrl = vid.getAttribute('data-src') || vid.getAttribute('data-video-url') || '';
+    }
+    directUrl = resolveFullUrl(directUrl);
+
+    // If it is already a direct HTTP MP4/media URL, return it directly!
+    if (directUrl && !directUrl.startsWith('blob:')) {
+      return directUrl;
+    }
+
+    // It is a blob: URL or empty! Resolve using layered extraction:
+    const rednoteUrl = extractRedNoteVideoUrl();
+    if (rednoteUrl) return rednoteUrl;
+
+    const metaUrl = extractMetaVideoUrl();
+    if (metaUrl) return metaUrl;
+
+    const perfUrl = extractPerformanceVideoUrl();
+    if (perfUrl) return perfUrl;
+
+    const bgUrl = await askBackgroundForSniffedMedia();
+    if (bgUrl) return bgUrl;
+
+    const scriptUrl = scanScriptsForVideoUrl();
+    if (scriptUrl) return scriptUrl;
+
+    return directUrl;
+  }
+
   // Full scan for extension popup
   function detectVideos() {
     const foundVideos = [];
@@ -236,17 +401,25 @@
 
       candidateUrl = resolveFullUrl(candidateUrl);
 
+      // If blob, attempt resolving from page metadata or performance entries
+      if (!candidateUrl || candidateUrl.startsWith('blob:')) {
+        const resolved = extractRedNoteVideoUrl() || extractMetaVideoUrl() || extractPerformanceVideoUrl() || scanScriptsForVideoUrl();
+        if (resolved) candidateUrl = resolved;
+      }
+
       if (candidateUrl && !seenUrls.has(candidateUrl) && !candidateUrl.startsWith('blob:')) {
         seenUrls.add(candidateUrl);
 
         const title = extractVideoTitle(vid, index);
         const poster = extractVideoPoster(vid);
+        const dur = vid.duration && !isNaN(vid.duration) ? Math.round(vid.duration) : null;
 
         foundVideos.push({
           url: candidateUrl,
           title: title.substring(0, 100),
           poster: poster,
-          duration: vid.duration && !isNaN(vid.duration) ? Math.round(vid.duration) : null,
+          duration: dur,
+          isTooLong: dur ? dur > MAX_ALLOWED_DURATION_SECONDS : false,
           width: vid.videoWidth || null,
           height: vid.videoHeight || null,
           pageTitle: document.title,
@@ -413,25 +586,42 @@
     btn.type = 'button';
     btn.dataset.videoUrl = initialUrl || '';
     btn.setAttribute('title', alreadyExported ? 'Video ini sudah tersimpan di Stok Media Vercel' : 'Export video ini langsung ke Stok Media & AI Vision (Vercel Cloud)');
-    
-    if (alreadyExported) {
-      btn.innerHTML = `
-        <span style="font-size: 13px; line-height: 1;">✅</span>
-        <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Sudah di Stok</span>
-      `;
-    } else {
-      btn.innerHTML = `
-        <span style="font-size: 13px; line-height: 1;">🚀</span>
-        <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Export ke Stok</span>
-      `;
-    }
 
-    const bgGradient = alreadyExported
-      ? 'rgba(5, 150, 105, 0.9)'
-      : 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)';
-    const borderCol = alreadyExported
-      ? 'rgba(52, 211, 153, 0.6)'
-      : 'rgba(255, 255, 255, 0.4)';
+    const updateButtonVisual = () => {
+      const isExp = isVideoAlreadyExported(btn.dataset.videoUrl || initialUrl, window.location.href);
+      const curDur = vid.duration && !isNaN(vid.duration) ? Math.round(vid.duration) : null;
+      const isTooLong = curDur && curDur > MAX_ALLOWED_DURATION_SECONDS;
+
+      if (isExp) {
+        btn.innerHTML = `
+          <span style="font-size: 13px; line-height: 1;">✅</span>
+          <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Sudah di Stok</span>
+        `;
+        btn.style.background = 'rgba(5, 150, 105, 0.95)';
+        btn.style.borderColor = 'rgba(52, 211, 153, 0.6)';
+        btn.setAttribute('title', 'Video ini sudah tersimpan di Stok Media Vercel');
+      } else if (isTooLong) {
+        btn.innerHTML = `
+          <span style="font-size: 13px; line-height: 1;">⚠️</span>
+          <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Terlalu Panjang (${curDur}s)</span>
+        `;
+        btn.style.background = 'rgba(180, 83, 9, 0.95)';
+        btn.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+        btn.setAttribute('title', `Video berdurasi ${curDur}s (> 90 detik). Stok media viral dibatasi maksimal 90 detik.`);
+      } else {
+        btn.innerHTML = `
+          <span style="font-size: 13px; line-height: 1;">🚀</span>
+          <span class="amz-btn-text" style="font-weight: 700; font-size: 11px; letter-spacing: 0.3px;">Export ke Stok</span>
+        `;
+        btn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)';
+        btn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+        btn.setAttribute('title', 'Export video ini langsung ke Stok Media & AI Vision (Vercel Cloud)');
+      }
+    };
+
+    updateButtonVisual();
+    vid.addEventListener('loadedmetadata', updateButtonVisual);
+    vid.addEventListener('durationchange', updateButtonVisual);
 
     btn.style.cssText = `
       position: absolute !important;
@@ -441,9 +631,8 @@
       display: inline-flex !important;
       align-items: center !important;
       gap: 6px !important;
-      background: ${bgGradient} !important;
       color: #ffffff !important;
-      border: 1px solid ${borderCol} !important;
+      border: 1px solid rgba(255, 255, 255, 0.4) !important;
       padding: 6px 12px !important;
       border-radius: 20px !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -470,10 +659,17 @@
       btn.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.45)';
     });
 
-    // Handle 1-Click Export from Page (With Anti-Duplication Protection)
+    // Handle 1-Click Export from Page (With Duration Filter & Blob Stream Resolving)
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
+
+      // 0. Duration Guard: Block videos that are too long (> 90 seconds)
+      const currentDuration = vid.duration && !isNaN(vid.duration) ? Math.round(vid.duration) : null;
+      if (currentDuration && currentDuration > MAX_ALLOWED_DURATION_SECONDS) {
+        showInPageNotification(`⚠️ Video terlalu panjang (${currentDuration} detik / > 1.5 menit). Stok Media Viral dibatasi maksimal 90 detik agar kuota hemat & performa Threads optimal.`, 'error');
+        return;
+      }
 
       let videoUrl = vid.currentSrc || vid.src || '';
       if (!videoUrl) {
@@ -484,7 +680,6 @@
         videoUrl = vid.getAttribute('data-src') || vid.getAttribute('data-video-url') || '';
       }
       videoUrl = resolveFullUrl(videoUrl);
-      btn.dataset.videoUrl = videoUrl;
 
       // 1. Client-side Anti-Duplicate Guard
       if (isVideoAlreadyExported(videoUrl, window.location.href)) {
@@ -495,8 +690,28 @@
         return;
       }
 
+      // 2. If video is a MediaSource blob: or empty, resolve the actual direct stream URL!
       if (!videoUrl || videoUrl.startsWith('blob:')) {
-        showInPageNotification('⚠️ URL video belum siap atau menggunakan streaming blob khusus. Coba putar video terlebih dahulu.', 'error');
+        showInPageNotification('🔍 Mendeteksi direct stream URL video...', 'info');
+        const resolved = await resolveRealVideoUrl(vid);
+        if (resolved && !resolved.startsWith('blob:')) {
+          videoUrl = resolved;
+        }
+      }
+
+      if (!videoUrl || videoUrl.startsWith('blob:')) {
+        showInPageNotification('⚠️ URL video belum siap atau terlindungi enkripsi DRM streaming. Coba putar video 1-2 detik lalu klik lagi.', 'error');
+        return;
+      }
+
+      btn.dataset.videoUrl = videoUrl;
+
+      // Re-check anti-duplicate with the resolved stream URL
+      if (isVideoAlreadyExported(videoUrl, window.location.href)) {
+        showInPageNotification('ℹ️ Video ini sudah ada di Stok Media Vercel Anda! (Hemat kuota & AI)', 'info');
+        btn.innerHTML = `<span>✅</span> <span style="font-weight:700;font-size:11px;">Sudah di Stok</span>`;
+        btn.style.background = 'rgba(5, 150, 105, 0.9)';
+        btn.style.borderColor = 'rgba(52, 211, 153, 0.6)';
         return;
       }
 
@@ -518,6 +733,7 @@
         title: title,
         sourceUrl: window.location.href,
         thumbnailUrl: poster,
+        duration: currentDuration,
         category: 'AUTO',
         notes: `Exported via In-Page Overlay Button from ${window.location.href}`,
       }, (res) => {
@@ -533,15 +749,14 @@
           if (res.isDuplicate) {
             showInPageNotification(`ℹ️ Video ini sudah ada di Stok Media sebelumnya ("${res.title || 'Viral'}"). Otomatis dicegah duplikasi (hemat kuota & AI)!`, 'info');
           } else {
-            showInPageNotification(`✅ Video "${res.title || 'Viral'}" berhasil masuk Stok Media Vercel!`, 'success');
+            showInPageNotification(`✅ Video "${res.title || 'Viral'}" ${currentDuration ? `(${currentDuration}s)` : ''} berhasil masuk Stok Media Vercel!`, 'success');
           }
         } else {
           btn.innerHTML = `<span>❌</span> <span style="font-weight:700;font-size:11px;">Gagal</span>`;
           btn.style.background = '#dc2626';
           showInPageNotification(`❌ Gagal: ${res?.error || 'Koneksi gagal'}`, 'error');
           setTimeout(() => {
-            btn.innerHTML = `<span>🚀</span><span style="font-weight:700;font-size:11px;">Export ke Stok</span>`;
-            btn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)';
+            updateButtonVisual();
           }, 4500);
         }
       });

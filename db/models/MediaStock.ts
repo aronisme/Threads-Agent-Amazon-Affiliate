@@ -30,6 +30,7 @@ const MediaStockSchema = new Schema<MediaStockDocument>(
     timesUsed: { type: Number, default: 0 },
     lastUsedAt: { type: Date, default: null },
     active: { type: Boolean, default: true, index: true },
+    duration: { type: Number, default: null },
     notes: { type: String, default: '', trim: true },
   },
   {

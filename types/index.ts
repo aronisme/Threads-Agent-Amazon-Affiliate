@@ -159,6 +159,7 @@ export interface IMediaStock {
   timesUsed: number;
   lastUsedAt?: Date | null;
   active: boolean;
+  duration?: number;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;

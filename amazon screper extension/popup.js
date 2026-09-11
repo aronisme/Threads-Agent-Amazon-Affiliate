@@ -385,9 +385,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       videos.forEach((v, idx) => {
         const isAlreadySaved = isVideoExported(v.url, tab.url, exportedSet);
+        const isTooLong = v.duration && v.duration > 90;
         const card = document.createElement('div');
         card.className = 'video-card';
-        card.style.cssText = `border: 1px solid ${isAlreadySaved ? 'rgba(52, 211, 153, 0.4)' : '#27272a'}; background: ${isAlreadySaved ? '#0e1c15' : '#141416'}; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s;`;
+        card.style.cssText = `border: 1px solid ${isAlreadySaved ? 'rgba(52, 211, 153, 0.4)' : isTooLong ? 'rgba(239, 68, 68, 0.35)' : '#27272a'}; background: ${isAlreadySaved ? '#0e1c15' : isTooLong ? '#1a0d0d' : '#141416'}; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s;`;
 
         const hasPoster = v.poster && v.poster.trim().length > 0;
 
@@ -417,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   </svg>
                 </div>
               </div>
-              ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 600;">${v.duration}s</span>` : ''}
+              ${v.duration ? `<span style="position: absolute; bottom: 2px; right: 2px; background: ${isTooLong ? 'rgba(220, 38, 38, 0.9)' : 'rgba(0,0,0,0.85)'}; color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 700;">${isTooLong ? '⚠️ ' : ''}${v.duration}s</span>` : ''}
             </div>
             <div style="flex: 1; min-width: 0;">
               <h4 style="font-size: 11px; font-weight: 600; color: #f4f4f5; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${v.title}">${v.title || `Video #${idx + 1}`}</h4>
@@ -425,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
                 <span style="font-size: 9px; color: #a855f7; display: inline-block;">✨ AI Vision</span>
                 ${isAlreadySaved ? `<span class="badge-pill amz-saved-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 9px; font-weight: 700; border: 1px solid rgba(52, 211, 153, 0.4); padding: 1px 6px; border-radius: 4px;">✅ Sudah di Stok</span>` : ''}
+                ${isTooLong ? `<span class="badge-pill" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 9px; font-weight: 700; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 6px; border-radius: 4px;">⚠️ Terlalu Panjang (>90s)</span>` : ''}
               </div>
             </div>
           </div>
@@ -435,8 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="btn btn-sm btn-ghost btn-copy-url" type="button" style="font-size: 10px; padding: 3px 8px;">
               Salin URL
             </button>
-            <button class="btn btn-sm btn-export-stock" type="button" style="font-size: 10px; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; ${isAlreadySaved ? 'background: #059669; color: #ffffff; border: 1px solid rgba(52, 211, 153, 0.6);' : 'background: linear-gradient(135deg, #9333ea, #db2777); color: #ffffff; border: none;'}">
-              ${isAlreadySaved ? '✅ Sudah di Stok' : '🚀 Export ke Stok Media'}
+            <button class="btn btn-sm btn-export-stock" type="button" style="font-size: 10px; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; ${isAlreadySaved ? 'background: #059669; color: #ffffff; border: 1px solid rgba(52, 211, 153, 0.6);' : isTooLong ? 'background: #78350f; color: #fef3c7; border: 1px solid #f59e0b;' : 'background: linear-gradient(135deg, #9333ea, #db2777); color: #ffffff; border: none;'}">
+              ${isAlreadySaved ? '✅ Sudah di Stok' : isTooLong ? '⚠️ Terlalu Panjang (>90s)' : '🚀 Export ke Stok Media'}
             </button>
           </div>
         `;
@@ -468,6 +470,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const exportBtn = card.querySelector('.btn-export-stock');
         exportBtn.addEventListener('click', async () => {
+          // Duration check guard: do not allow videos > 90 seconds
+          if (v.duration && v.duration > 90) {
+            showToast(`⚠️ Video ini berdurasi ${v.duration} detik (> 1.5 menit). Stok media viral dibatasi maksimal 90 detik.`, 4500);
+            return;
+          }
+
           // Client-side anti-duplicate check
           if (isVideoExported(v.url, tab.url, exportedSet)) {
             showToast('ℹ️ Video ini sudah ada di Stok Media Vercel Anda! (Hemat kuota & AI)', 3500);
@@ -488,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: v.title,
             sourceUrl: tab.url,
             thumbnailUrl: v.poster,
+            duration: v.duration || undefined,
             category: 'AUTO',
             notes: `Exported via Universal Web Sniffer from ${tab.url}`,
           }, (res) => {

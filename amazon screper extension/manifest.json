@@ -9,7 +9,8 @@
     "storage",
     "scripting",
     "clipboardRead",
-    "clipboardWrite"
+    "clipboardWrite",
+    "webRequest"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",

@@ -58,8 +58,75 @@ async function downloadBatch(items, onProgress) {
   return results;
 }
 
+// --- UNIVERSAL NETWORK MEDIA SNIFFER ---
+// Intercepts media responses (including video streams that get piped into MediaSource blob: URLs)
+const tabMediaRequests = new Map();
+
+if (typeof chrome !== 'undefined' && chrome.webRequest && chrome.webRequest.onResponseStarted) {
+  try {
+    chrome.webRequest.onResponseStarted.addListener(
+      (details) => {
+        const url = details.url;
+        if (!url || url.startsWith('blob:') || url.startsWith('data:')) return;
+
+        const headers = details.responseHeaders || [];
+        const ctHeader = headers.find(
+          (h) => h.name && h.name.toLowerCase() === 'content-type'
+        );
+        const contentType = ctHeader ? ctHeader.value.toLowerCase() : '';
+
+        const isVideoMime =
+          contentType.startsWith('video/') ||
+          contentType.includes('application/vnd.apple.mpegurl') ||
+          contentType.includes('application/x-mpegurl');
+
+        const isVideoUrl =
+          url.includes('.mp4') ||
+          url.includes('.webm') ||
+          url.includes('.m4s') ||
+          url.includes('sns-video') ||
+          url.includes('xhscdn.com') ||
+          url.includes('tiktokcdn') ||
+          url.includes('byteoversea') ||
+          url.includes('fbcdn.net/v/') ||
+          url.includes('cdninstagram.com/v/') ||
+          url.includes('twimg.com/ext_tw_video') ||
+          url.includes('v.redd.it');
+
+        if (isVideoMime || isVideoUrl) {
+          const tabId = details.tabId;
+          if (tabId > 0) {
+            if (!tabMediaRequests.has(tabId)) {
+              tabMediaRequests.set(tabId, []);
+            }
+            const list = tabMediaRequests.get(tabId);
+            if (!list.includes(url)) {
+              list.push(url);
+              if (list.length > 30) list.shift();
+            }
+          }
+        }
+      },
+      { urls: ['<all_urls>'] },
+      ['responseHeaders']
+    );
+
+    chrome.tabs.onRemoved.addListener((tabId) => {
+      tabMediaRequests.delete(tabId);
+    });
+  } catch (e) {
+    console.warn('Could not register webRequest media listener:', e);
+  }
+}
+
 // Listen to messages from popup or content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'GET_TAB_SNIFFED_VIDEOS') {
+    const tabId = sender.tab ? sender.tab.id : request.tabId;
+    const videos = tabId && tabMediaRequests.has(tabId) ? tabMediaRequests.get(tabId) : [];
+    sendResponse({ success: true, videos });
+    return true;
+  }
   if (request.action === 'DOWNLOAD_SINGLE') {
     const { url, filename, folder = 'AmazonScraper' } = request;
     const cleanName = sanitizeFilename(filename);
@@ -118,8 +185,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'EXPORT_VIDEO_TO_MEDIA_STOCK') {
-    const { endpoint, apiKey, videoUrl, title, sourceUrl, thumbnailUrl, category, notes } = request;
-    exportVideoToMediaStock(endpoint, apiKey, { videoUrl, title, sourceUrl, thumbnailUrl, category, notes })
+    const { endpoint, apiKey, videoUrl, title, sourceUrl, thumbnailUrl, category, duration, notes } = request;
+    exportVideoToMediaStock(endpoint, apiKey, { videoUrl, title, sourceUrl, thumbnailUrl, category, duration, notes })
       .then(result => sendResponse(result))
       .catch(err => sendResponse({ success: false, error: err.message }));
 
@@ -129,6 +196,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Export single video directly to MediaStock API
 async function exportVideoToMediaStock(endpoint, apiKey, videoData) {
+  // Validate duration rule: short viral videos only (<= 90 seconds)
+  if (videoData.duration && Number(videoData.duration) > 90) {
+    const dSec = Math.round(Number(videoData.duration));
+    throw new Error(`Video terlalu panjang (${dSec} detik / > 1.5 menit). Stok Media Viral dibatasi maksimal 90 detik agar kuota hemat & performa Threads optimal.`);
+  }
+
   // If endpoint or apiKey was not supplied, load saved settings from storage
   if (!endpoint || !apiKey) {
     try {
@@ -174,6 +247,7 @@ async function exportVideoToMediaStock(endpoint, apiKey, videoData) {
         sourceUrl: videoData.sourceUrl || '',
         thumbnailUrl: videoData.thumbnailUrl || '',
         category: videoData.category || 'AUTO',
+        duration: videoData.duration || undefined,
         notes: videoData.notes || ''
       })
     });

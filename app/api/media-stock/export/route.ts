@@ -107,8 +107,21 @@ export async function POST(req: NextRequest) {
       sourceUrl,
       thumbnailUrl,
       category,
+      duration,
       notes = '',
     } = body;
+
+    // Validate max duration: viral short-form clips should not exceed 90 seconds
+    const parsedDuration = duration && !isNaN(Number(duration)) ? Math.round(Number(duration)) : null;
+    if (parsedDuration && parsedDuration > 90) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Video terlalu panjang (${parsedDuration} detik / > 1.5 menit). Maksimal durasi stok video viral adalah 90 detik agar hemat kuota dan relevan untuk Threads.`,
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.trim()) {
       return NextResponse.json(
@@ -214,6 +227,7 @@ export async function POST(req: NextRequest) {
       category: resolvedCategory,
       notes: notes?.trim() || (cleanSourceUrl ? `Source: ${cleanSourceUrl}` : ''),
       visualContext: visualContext || undefined,
+      duration: parsedDuration || undefined,
       active: true,
       timesUsed: 0,
     });
