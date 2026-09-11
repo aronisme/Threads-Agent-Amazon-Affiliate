@@ -48,14 +48,14 @@ export async function POST(req: NextRequest) {
       title,
       videoUrl,
       thumbnailUrl,
-      category = 'GENERAL',
+      category,
       notes = '',
       autoAnalyzeVision = true,
     } = body;
 
-    if (!title || !videoUrl) {
+    if (!videoUrl || !videoUrl.trim()) {
       return NextResponse.json(
-        { success: false, error: 'Title and videoUrl are required' },
+        { success: false, error: 'videoUrl is required' },
         { status: 400 }
       );
     }
@@ -77,28 +77,40 @@ export async function POST(req: NextRequest) {
         .replace(/\.mp4$/i, '.jpg');
     }
 
-    // 3. Optional AI Vision Analysis
-    let visualContext = undefined;
+    // 3. Autonomous AI Vision Analysis
+    let visualContext: any = undefined;
     if (autoAnalyzeVision) {
       try {
-        console.info(`👁️ [MediaStock] Analyzing video with AI Vision: "${title}"...`);
+        console.info(`👁️ [MediaStock] Autonomous AI Vision analyzing video: ${finalVideoUrl}...`);
         visualContext = await visionRotator.analyzeStockVideo({
           videoUrl: finalVideoUrl,
-          title,
-          category,
-          notes,
+          title: title?.trim(),
+          category: category && category !== 'AUTO' ? category : undefined,
+          notes: notes.trim(),
         });
       } catch (visionErr) {
         console.warn('⚠️ [MediaStock] Vision analysis failed, continuing without visualContext:', visionErr);
       }
     }
 
-    // 4. Save to Database
+    // 4. Resolve Title & Category autonomously if user left them empty
+    const resolvedTitle =
+      title?.trim() ||
+      visualContext?.autoTitle ||
+      visualContext?.summaryDescription?.substring(0, 60) ||
+      'Viral Video Moment';
+
+    const resolvedCategory =
+      category && category !== 'AUTO'
+        ? category
+        : visualContext?.autoCategory || 'FUNNY';
+
+    // 5. Save to Database
     const mediaItem = await MediaStock.create({
-      title: title.trim(),
+      title: resolvedTitle,
       videoUrl: finalVideoUrl,
       thumbnailUrl: finalThumbUrl,
-      category,
+      category: resolvedCategory,
       notes: notes.trim(),
       visualContext,
       active: true,
@@ -108,7 +120,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       item: mediaItem,
-      message: 'Media stock item created successfully.',
+      message: 'Media stock item processed and saved successfully.',
     });
   } catch (err: any) {
     console.error('❌ Error in POST /api/media-stock:', err);

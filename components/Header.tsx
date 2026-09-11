@@ -2,13 +2,29 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { LogOut } from 'lucide-react';
 import LanguageToggle from './LanguageToggle';
 
 export default function Header() {
   const pathname = usePathname();
-  const { strings } = useLanguage();
+  const router = useRouter();
+  const { strings, language } = useLanguage();
+
+  if (pathname === '/login') {
+    return null;
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      window.location.href = '/login';
+    }
+  };
 
   const navItems = [
     { href: '/dashboard', label: strings.navDashboard },
@@ -76,6 +92,15 @@ export default function Header() {
 
           {/* Language Switcher */}
           <LanguageToggle />
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 border border-zinc-800 transition"
+            title={language === 'id' ? 'Keluar dari Dashboard' : 'Log Out from Dashboard'}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

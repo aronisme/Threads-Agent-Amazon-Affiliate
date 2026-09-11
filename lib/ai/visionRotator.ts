@@ -318,6 +318,8 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
       const parsed = JSON.parse(cleaned);
       if (typeof parsed === 'object' && parsed !== null) {
         return {
+          autoTitle: parsed.autoTitle || parsed.title || undefined,
+          autoCategory: parsed.autoCategory || parsed.category || undefined,
           aestheticStyle: parsed.aestheticStyle || 'clean modern minimalist',
           dominantColors: Array.isArray(parsed.dominantColors) ? parsed.dominantColors : ['matte black', 'neutral'],
           materials: Array.isArray(parsed.materials) ? parsed.materials : ['aluminum', 'matte composite'],
@@ -380,27 +382,38 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
   }
 
   /**
-   * Specialized AI Vision analysis for Non-Affiliate Viral & Humor Videos
+   * Specialized Autonomous AI Vision analysis for Non-Affiliate Viral & Humor Videos
+   * Automatically generates title, classifies category, and extracts visual punchlines!
    */
   public async analyzeStockVideo(options: {
     videoUrl: string;
-    title: string;
+    title?: string;
     category?: string;
     notes?: string;
   }): Promise<IVisualContext> {
-    const { videoUrl, title, category = 'FUNNY', notes = '' } = options;
-    const viralPrompt = `Analyze this video scene for "${title}" (Category: ${category}).
+    const { videoUrl, title, category, notes = '' } = options;
+    const viralPrompt = `Analyze this video scene carefully.
 You are an expert social media curator specializing in viral, witty, relatable, and funny content on Meta Threads.
-Examine the scene/frames carefully and extract what makes this video engaging:
-1. Aesthetic style & visual atmosphere (e.g. funny chaotic workspace, satisfying kinetic animation, adorable pet moment, relatable tech struggle).
-2. Dominant colors in the scene.
-3. Visible elements, objects, or actions taking place.
-4. Scale, setting, and mood.
-5. 2-3 genuine punchlines, visual hooks, or relatable moments that make viewers comment or share.
-6. Short summary description (1 sharp, engaging sentence capturing the essence).
+Examine the scene/frames and extract everything automatically:
+1. autoTitle: Generate a catchy, short title/hook (under 8 words) describing the scene or punchline (e.g. "Cat completely puzzled by minimalist desk setup", "When the morning coffee drops before 9 AM").
+2. autoCategory: Classify this video into exactly ONE of these categories:
+   - "FUNNY" (if hilarious, absurd, comedy, funny pets/fails)
+   - "RELATABLE" (if everyday struggles, work from home habits, desk life, relatable moments)
+   - "AESTHETIC" (if cozy, beautiful workspace, ambient lighting, calm vibes)
+   - "SATISFYING" (if smooth kinetic motion, peeling protective film, perfect cable management, clean transitions)
+   - "TECH_MEME" (if gadget funny moments, programmer humor, tech fails)
+   - "GENERAL" (other viral clips)
+3. aestheticStyle: Visual atmosphere & setting (e.g. chaotic desk, cozy ambient room, minimalist setup).
+4. dominantColors: Array of main colors in the scene.
+5. materials: Array of visible objects/elements.
+6. scaleAndForm: Setting scale and vibe.
+7. keyVisualHooks: Array of 2-3 specific punchlines, hilarious moments, or relatable actions.
+8. summaryDescription: 1 sharp, engaging sentence describing the video essence.
 
-Respond ONLY with valid JSON in this exact structure without markdown or backticks:
+Respond ONLY with valid JSON in this exact structure without markdown:
 {
+  "autoTitle": "string",
+  "autoCategory": "FUNNY" | "RELATABLE" | "AESTHETIC" | "SATISFYING" | "TECH_MEME" | "GENERAL",
   "aestheticStyle": "string",
   "dominantColors": ["string"],
   "materials": ["string"],
@@ -409,13 +422,22 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
   "summaryDescription": "string"
 }`;
 
-    return this.analyzeProductImage({
+    const res = await this.analyzeProductImage({
       imageUrl: videoUrl,
-      productName: title,
-      category,
+      productName: title || 'Viral Video Clip',
+      category: category || 'Viral Video',
       notes,
       customPrompt: viralPrompt,
     });
+
+    if (!res.autoTitle || res.autoTitle === 'Product') {
+      res.autoTitle = title || res.summaryDescription?.substring(0, 50) || 'Viral Video Moment';
+    }
+    if (!res.autoCategory) {
+      res.autoCategory = (category as any) || 'FUNNY';
+    }
+
+    return res;
   }
 }
 

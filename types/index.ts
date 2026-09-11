@@ -29,6 +29,8 @@ export type SocialAction = 'POST' | 'REPLY' | 'DO_NOTHING';
 export type AffiliateMode = 'NONE' | 'MENTION_ONLY' | 'SOFT_RECOMMENDATION' | 'DIRECT_LINK';
 
 export interface IVisualContext {
+  autoTitle?: string;
+  autoCategory?: 'FUNNY' | 'RELATABLE' | 'AESTHETIC' | 'SATISFYING' | 'TECH_MEME' | 'GENERAL' | string;
   aestheticStyle: string;
   dominantColors: string[];
   materials: string[];

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Film,
   Plus,
@@ -16,8 +16,13 @@ import {
   Coffee,
   Zap,
   ShieldCheck,
-  Calendar,
   Layers,
+  Upload,
+  Link2,
+  FileVideo,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
@@ -31,13 +36,19 @@ export default function MediaStockPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [inspectedVisual, setInspectedVisual] = useState<any | null>(null);
 
-  // Form states
-  const [formTitle, setFormTitle] = useState('');
+  // Upload modal states
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [formVideoUrl, setFormVideoUrl] = useState('');
-  const [formCategory, setFormCategory] = useState('FUNNY');
+  const [showManualOptions, setShowManualOptions] = useState(false);
+  const [formTitle, setFormTitle] = useState('');
+  const [formCategory, setFormCategory] = useState('AUTO');
   const [formNotes, setFormNotes] = useState('');
-  const [formAutoVision, setFormAutoVision] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [analyzingIds, setAnalyzingIds] = useState<Record<string, boolean>>({});
 
   // Cleanup feedback
@@ -76,38 +87,109 @@ export default function MediaStockPage() {
     fetchStock();
   }, [selectedCategory]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const preview = URL.createObjectURL(file);
+      setFilePreviewUrl(preview);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (!formTitle.trim() || !formVideoUrl.trim()) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('video/')) {
+      setSelectedFile(file);
+      const preview = URL.createObjectURL(file);
+      setFilePreviewUrl(preview);
+    }
+  };
+
+  const resetModalState = () => {
+    setSelectedFile(null);
+    if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    setFilePreviewUrl(null);
+    setFormVideoUrl('');
+    setFormTitle('');
+    setFormCategory('AUTO');
+    setFormNotes('');
+    setShowManualOptions(false);
+    setUploadProgress(null);
+    setShowAddModal(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (uploadMode === 'file' && !selectedFile) {
+      alert(isId ? 'Pilih file video terlebih dahulu' : 'Please select a video file first');
+      return;
+    }
+    if (uploadMode === 'url' && !formVideoUrl.trim()) {
+      alert(isId ? 'Masukkan URL video terlebih dahulu' : 'Please enter a video URL first');
+      return;
+    }
 
     try {
       setSubmitting(true);
-      const res = await fetch('/api/media-stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formTitle.trim(),
-          videoUrl: formVideoUrl.trim(),
-          category: formCategory,
-          notes: formNotes.trim(),
-          autoAnalyzeVision: formAutoVision,
-        }),
-      });
 
-      const data = await res.json();
-      if (data.success) {
-        setFormTitle('');
-        setFormVideoUrl('');
-        setFormNotes('');
-        setShowAddModal(false);
-        await fetchStock();
+      if (uploadMode === 'file' && selectedFile) {
+        setUploadProgress(
+          isId
+            ? 'Mengunggah video & memproses dengan AI Vision...'
+            : 'Uploading video & running AI Vision...'
+        );
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        if (formCategory && formCategory !== 'AUTO') {
+          formData.append('category', formCategory);
+        }
+
+        const res = await fetch('/api/media-stock/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          resetModalState();
+          await fetchStock();
+        } else {
+          alert(data.error || 'Upload failed');
+        }
       } else {
-        alert(data.error || 'Failed to add video to Media Stock');
+        setUploadProgress(
+          isId
+            ? 'AI Vision sedang memindai video & punchline...'
+            : 'AI Vision scanning video scene & punchline...'
+        );
+
+        const res = await fetch('/api/media-stock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoUrl: formVideoUrl.trim(),
+            title: formTitle.trim() || undefined,
+            category: formCategory !== 'AUTO' ? formCategory : undefined,
+            notes: formNotes.trim() || undefined,
+            autoAnalyzeVision: true,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          resetModalState();
+          await fetchStock();
+        } else {
+          alert(data.error || 'Failed to process video');
+        }
       }
     } catch (err: any) {
-      alert(err.message || 'Error creating media stock item');
+      alert(err.message || 'Error processing video');
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -220,13 +302,13 @@ export default function MediaStockPage() {
               <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
                 {isId ? 'Stok Media Viral & Video Non-Afiliasi' : 'Media Stock Vault'}
                 <span className="text-xs font-mono font-normal px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                  v2.5 Organic Engine
+                  v2.5 Zero-Effort AI
                 </span>
               </h1>
               <p className="text-xs text-zinc-400">
                 {isId
-                  ? 'Suplai stok video lucu, unik, dan relatable untuk konten organik Threads tanpa link afiliasi.'
-                  : 'Curate viral, humor, and relatable videos for organic engagement posts without affiliate links.'}
+                  ? 'Tinggal upload/paste URL video. AI Vision otomatis menganalisis adegan, membuat judul, dan mengelompokkan kategori.'
+                  : 'Simply drop or paste video. AI Vision automatically extracts scene details, writes viral hooks, and auto-tags category.'}
               </p>
             </div>
           </div>
@@ -253,7 +335,7 @@ export default function MediaStockPage() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-600/20 transition"
           >
             <Plus className="w-4 h-4" />
-            {isId ? 'Tambah Video Stok' : 'Add Stock Video'}
+            {isId ? 'Tambah Video (AI Auto)' : 'Add Video (AI Auto)'}
           </button>
         </div>
       </div>
@@ -337,19 +419,19 @@ export default function MediaStockPage() {
         <div className="glass-card p-12 rounded-2xl border border-zinc-800 flex flex-col items-center justify-center text-center">
           <Film className="w-12 h-12 text-zinc-600 mb-3" />
           <h3 className="text-base font-semibold text-white">
-            {isId ? 'Belum Ada Stok Video di Kategori Ini' : 'No Videos Found'}
+            {isId ? 'Belum Ada Stok Video' : 'No Videos Found'}
           </h3>
           <p className="text-xs text-zinc-400 max-w-sm mt-1 mb-4">
             {isId
-              ? 'Tambahkan video lucu atau relatable baru agar agen Threads dapat mempublikasikannya secara berkala.'
-              : 'Add funny or relatable video URLs so your Threads agent can publish high-engagement viral clips.'}
+              ? 'Tinggal drop file video MP4 atau paste link video. AI Vision akan otomatis menangani judul dan kategori!'
+              : 'Drop an MP4 video file or paste a video link. AI Vision will automatically handle titles and categories!'}
           </p>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition"
           >
             <Plus className="w-4 h-4" />
-            {isId ? 'Tambah Video Pertama' : 'Add First Video'}
+            {isId ? 'Upload Video Pertama' : 'Add First Video'}
           </button>
         </div>
       ) : (
@@ -474,130 +556,273 @@ export default function MediaStockPage() {
         </div>
       )}
 
-      {/* Add Video Modal */}
+      {/* Zero-Effort Autonomous Add Video Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-card max-w-lg w-full p-6 rounded-2xl border border-zinc-700 shadow-2xl relative">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Film className="w-5 h-5 text-purple-400" />
-                {isId ? 'Tambah Video Stok Non-Afiliasi' : 'Add Stock Video'}
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Film className="w-5 h-5 text-purple-400" />
+                  {isId ? 'Tambah Video Stok' : 'Add Stock Video'}
+                </h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  {isId
+                    ? 'AI Vision otomatis membaca video, menentukan judul, dan mengelompokkan kategori.'
+                    : 'AI Vision automatically inspects video, generates title, and classifies category.'}
+                </p>
+              </div>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={resetModalState}
                 className="text-zinc-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  {isId ? 'Judul / Deskripsi Singkat' : 'Title / Short Concept'} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={
-                    isId
-                      ? 'e.g. Kucing kaget liat kabel rapi di meja kerja'
-                      : 'e.g. Cat gets confused by minimalist desk setup'
-                  }
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-                />
-              </div>
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-1.5 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800 mb-4">
+              <button
+                type="button"
+                onClick={() => setUploadMode('file')}
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition ${
+                  uploadMode === 'file'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {isId ? 'Upload File Langsung' : 'Direct File Upload'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode('url')}
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-lg transition ${
+                  uploadMode === 'url'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                {isId ? 'Lewat URL Video' : 'By Video URL'}
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  {isId ? 'URL Video MP4' : 'MP4 Video URL'} *
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://res.cloudinary.com/... or direct https://...video.mp4"
-                  value={formVideoUrl}
-                  onChange={(e) => setFormVideoUrl(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-mono text-[11px]"
-                />
-                <p className="text-[10px] text-zinc-400 mt-1">
-                  {isId
-                    ? 'Jika URL berasal dari luar, sistem akan otomatis me-rehost ke Cloudinary.'
-                    : 'External URLs will be automatically re-hosted to your Cloudinary storage.'}
-                </p>
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Tab 1: Direct File Upload */}
+              {uploadMode === 'file' && (
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="video/mp4,video/quicktime,video/webm"
+                    className="hidden"
+                  />
 
-              <div className="grid grid-cols-2 gap-3">
+                  {!selectedFile ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handleDrop}
+                      className="border-2 border-dashed border-zinc-700 hover:border-purple-500 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-zinc-900/40 hover:bg-zinc-900/70 text-center group"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <Upload className="w-6 h-6 text-purple-400" />
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-200">
+                        {isId
+                          ? 'Klik untuk memilih video atau drag & drop ke sini'
+                          : 'Click to select video or drag & drop here'}
+                      </p>
+                      <p className="text-[11px] text-zinc-500 mt-1">
+                        MP4, MOV, atau WebM
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <FileVideo className="w-5 h-5 text-purple-400 shrink-0" />
+                          <div className="truncate">
+                            <p className="text-xs font-semibold text-white truncate">
+                              {selectedFile.name}
+                            </p>
+                            <p className="text-[10px] text-zinc-400">
+                              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedFile(null);
+                            if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+                            setFilePreviewUrl(null);
+                          }}
+                          className="text-zinc-400 hover:text-rose-400 text-xs px-2 py-1"
+                        >
+                          {isId ? 'Ganti' : 'Change'}
+                        </button>
+                      </div>
+
+                      {filePreviewUrl && (
+                        <div className="aspect-video bg-black rounded-xl overflow-hidden">
+                          <video
+                            src={filePreviewUrl}
+                            controls
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: By URL */}
+              {uploadMode === 'url' && (
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    {isId ? 'Kategori' : 'Category'}
+                    {isId ? 'URL Video MP4' : 'MP4 Video URL'} *
                   </label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="FUNNY">{isId ? 'Lucu / Komedi' : 'Funny / Humor'}</option>
-                    <option value="RELATABLE">{isId ? 'Relatable / WFH' : 'Relatable / Daily'}</option>
-                    <option value="AESTHETIC">{isId ? 'Estetik & Cozy' : 'Aesthetic & Cozy'}</option>
-                    <option value="SATISFYING">{isId ? 'Satisfying' : 'Satisfying'}</option>
-                    <option value="TECH_MEME">{isId ? 'Tech Meme' : 'Tech Meme'}</option>
-                    <option value="GENERAL">{isId ? 'Umum' : 'General'}</option>
-                  </select>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://res.cloudinary.com/... or direct https://...video.mp4"
+                    value={formVideoUrl}
+                    onChange={(e) => setFormVideoUrl(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-mono text-[11px]"
+                  />
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    {isId
+                      ? 'Jika URL berasal dari luar, sistem otomatis me-rehost ke Cloudinary Anda.'
+                      : 'External video URLs will be automatically transferred to your Cloudinary storage.'}
+                  </p>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    {isId ? 'Auto AI Vision' : 'Auto AI Vision'}
-                  </label>
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formAutoVision}
-                      onChange={(e) => setFormAutoVision(e.target.checked)}
-                      className="rounded border-zinc-700 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-xs text-zinc-300">
-                      {isId ? 'Analisis Otomatis' : 'Analyze on Save'}
-                    </span>
-                  </label>
+              {/* Zero-Effort AI Vision Callout */}
+              <div className="bg-purple-950/20 border border-purple-500/20 rounded-xl p-3 flex items-start gap-2.5 text-xs text-purple-300">
+                <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-purple-200">
+                    {isId ? '100% Otomatis oleh AI Vision' : '100% Automated by AI Vision'}
+                  </p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    {isId
+                      ? 'AI Vision akan menonton adegan, menentukan judul viral terbaik, dan mengelompokkan kategori secara otomatis. Anda tidak perlu mengetik apa pun!'
+                      : 'AI Vision inspects the frames, generates an engaging title, and assigns category automatically. No typing required!'}
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  {isId ? 'Catatan / Punchline (Opsional)' : 'Notes / Punchline (Optional)'}
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder={
-                    isId
-                      ? 'Beri catatan humor atau poin penting yang harus diperhatikan AI...'
-                      : 'Add notes about the joke or punchline...'
-                  }
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-                />
+              {/* Optional Collapsible Manual Override */}
+              <div className="border border-zinc-800 rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowManualOptions(!showManualOptions)}
+                  className="w-full p-2.5 bg-zinc-900/50 hover:bg-zinc-900 text-left flex items-center justify-between text-xs text-zinc-400 hover:text-zinc-200 transition"
+                >
+                  <span className="flex items-center gap-1.5 font-medium">
+                    ⚙️ {isId ? 'Penyesuaian Manual (Opsional)' : 'Manual Overrides (Optional)'}
+                  </span>
+                  {showManualOptions ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+
+                {showManualOptions && (
+                  <div className="p-3.5 space-y-3 bg-zinc-900/30 border-t border-zinc-800">
+                    <div>
+                      <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                        {isId ? 'Judul Kustom (Kosongkan agar dibuatkan AI)' : 'Custom Title (Leave empty for AI)'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={
+                          isId
+                            ? 'Biarkan kosong untuk judul otomatis dari AI Vision...'
+                            : 'Leave empty for auto-generated title...'
+                        }
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                        {isId ? 'Kategori Khusus' : 'Specific Category'}
+                      </label>
+                      <select
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
+                      >
+                        <option value="AUTO">✨ {isId ? 'Otomatis Ditentukan AI Vision' : 'Auto-detected by AI Vision'}</option>
+                        <option value="FUNNY">{isId ? 'Lucu / Komedi' : 'Funny / Humor'}</option>
+                        <option value="RELATABLE">{isId ? 'Relatable / WFH' : 'Relatable / Daily'}</option>
+                        <option value="AESTHETIC">{isId ? 'Estetik & Cozy' : 'Aesthetic & Cozy'}</option>
+                        <option value="SATISFYING">{isId ? 'Satisfying' : 'Satisfying'}</option>
+                        <option value="TECH_MEME">{isId ? 'Tech Meme' : 'Tech Meme'}</option>
+                        <option value="GENERAL">{isId ? 'Umum' : 'General'}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                        {isId ? 'Catatan Konteks / Punchline Tambahan' : 'Extra Punchline Notes'}
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder={
+                          isId
+                            ? 'Poin penting yang ingin diperhatikan AI...'
+                            : 'Important scene points for AI...'
+                        }
+                        value={formNotes}
+                        onChange={(e) => setFormNotes(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Progress Indicator */}
+              {uploadProgress && (
+                <div className="p-3 bg-purple-900/30 border border-purple-500/30 rounded-xl flex items-center gap-3 text-xs text-purple-300">
+                  <RefreshCw className="w-4 h-4 animate-spin text-purple-400 shrink-0" />
+                  <span>{uploadProgress}</span>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={resetModalState}
+                  disabled={submitting}
                   className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white transition"
                 >
                   {isId ? 'Batal' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg transition"
+                  disabled={submitting || (uploadMode === 'file' && !selectedFile) || (uploadMode === 'url' && !formVideoUrl.trim())}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg shadow-purple-600/30 transition"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  {submitting ? (isId ? 'Menyimpan...' : 'Saving...') : isId ? 'Simpan ke Stok' : 'Save to Vault'}
+                  <Sparkles className={`w-4 h-4 ${submitting ? 'animate-spin' : ''}`} />
+                  {submitting
+                    ? isId
+                      ? 'Sedang Memproses...'
+                      : 'Processing...'
+                    : isId
+                    ? '✨ Analisis Otomatis & Simpan'
+                    : '✨ Auto-Analyze & Save'}
                 </button>
               </div>
             </form>
