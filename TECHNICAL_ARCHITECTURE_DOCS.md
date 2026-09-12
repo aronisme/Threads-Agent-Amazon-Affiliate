@@ -93,7 +93,7 @@ flowchart TD
     V --> W
     W --> X[Perbarui Cooldown & Memori Agen]
     
-    J -- CHECK_REPLIES --> Y[Threads API: Tarik Percakapan 48 Jam Terakhir]
+    J -- CHECK_REPLIES --> Y[Threads API: Tarik Percakapan 7 Hari Terakhir dari 20 Post Utama (Excl. Self-Replies)]
     Y --> Z[Enqueue GENERATE_REPLY untuk tiap komentar baru]
     
     J -- GENERATE_REPLY --> AA[Pilih Strategi Balasan: Agree/Disagree/Value/Playful]
@@ -328,7 +328,10 @@ Terletak di [lib/moderation/qualityGate.ts](file:///c:/App%20Tools/amazon%20affi
 
 ### 6.1 Filter Spam & Pola Pemasaran Terlarang
 Setiap konten yang dihasilkan AI wajib melewati pengujian *Quality Gate* dengan skor awal 95 poin (ambang batas kelulusan: 60 poin):
-1. **Panjang Karakter**: Maksimal 500 karakter (aturan Threads). Dikenakan penalti -40 poin jika melanggar.
+1. **Panjang Karakter & Smart Sentence Trimmer**:
+   - Batas mutlak Threads: 500 karakter.
+   - **Smart Trimmer**: Jika output AI sedikit melebihi 500 karakter (antara 500-600 karakter), sistem tidak langsung menolaknya, melainkan secara cerdas memotong teks di batas akhir kalimat terdekat (`. `, `! `, `? `, `\n\n`) dalam 480 karakter pertama. Hal ini menjaga kalimat tetap utuh dan draf berkualitas tinggi tetap ter-publish.
+   - Jika setelah pemotongan panjang tetap > 500 karakter: Dikenakan penalti -40 poin (status draf DRAFT).
 2. **Regex Spam Pemasaran Terlarang** (-30 poin per pelanggaran):
    - `/click the link/i`
    - `/link in bio/i`
@@ -338,6 +341,7 @@ Setiap konten yang dihasilkan AI wajib melewati pengujian *Quality Gate* dengan 
    - `/limited time deal/i`, `/swipe up/i`, `/hurry up/i`
 3. **Penyalahgunaan Hashtag**: Penalti -25 poin jika mengandung lebih dari 2 hashtag (pengguna Threads autentik sangat jarang menumpuk hashtag).
 4. **Huruf Kapital & Tanda Seru Berlebih**: Penalti jika huruf besar > 40% (-20 poin) atau tanda seru `!` > 3 buah (-15 poin).
+5. **Sanitisasi Format Markdown**: Otomatis membersihkan karakter bintang Markdown (`*teks*` atau `**teks**`) karena Meta Threads tidak mendukung Markdown dan akan menampilkan bintang secara literal.
 
 ### 6.2 Evaluasi Repetisi Berbasis AI Memory
 Untuk mencegah agen mengulang lelucon, topik, atau sudut pandang yang sama:
@@ -352,17 +356,33 @@ Untuk mencegah agen mengulang lelucon, topik, atau sudut pandang yang sama:
 
 Terletak di [lib/threads/client.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/threads/client.ts) dan [lib/threads/tokens.ts](file:///c:/App%20Tools/amazon%20affiliate%20agent/lib/threads/tokens.ts).
 
-### 7.1 Dua Tahap Penerbitan (Container -> Publish)
-Meta Threads Graph API menerapkan protokol penerbitan dua langkah yang ketat:
-1. **Pembuatan Media Container**:
+### 7.1 Protokol Penerbitan Meta Threads Graph API v1.0 (Form-URL-Encoded)
+Meta Threads Graph API menerapkan protokol penerbitan dua langkah yang mewajibkan parameter media dikirim via **`application/x-www-form-urlencoded` (`new URLSearchParams()`)**, bukan `application/json` (format JSON menyebabkan crawler Meta gagal mengunduh media dengan *Error Subcode 2207052*):
+
+1. **Pembuatan Media Container (`createContainer`)**:
    - `POST https://graph.threads.net/v1.0/{userId}/threads`
-   - Parameter: `access_token`, `text`, `media_type` (`TEXT`, `IMAGE`, `VIDEO`), `reply_to_id` (opsional jika membalas), `image_url` (opsional).
+   - Body (`URLSearchParams`): `access_token`, `text`, `media_type` (`TEXT`, `IMAGE`, `VIDEO`, `CAROUSEL`), `reply_to_id` (opsional jika membalas), `image_url` / `video_url` (opsional).
    - Mengembalikan: `{ id: creation_id }`.
-2. **Buffer Pemrosesan Media**: Jika terdapat gambar atau video, sistem menunggu selama 3000ms (`setTimeout(resolve, 3000)`) agar CDN Meta selesai memproses media sebelum diterbitkan.
-3. **Penerbitan Kontainer**:
+
+2. **Pembuatan Multi-Image Carousel (`publishCarousel`)**:
+   - **Langkah A**: Membuat container anak individu (2-5 gambar) dengan parameter `media_type=IMAGE`, `image_url`, dan `is_carousel_item=true`.
+   - **Langkah B**: Menunggu status transcoding setiap item anak menjadi `FINISHED`.
+   - **Langkah C**: Membuat container induk Carousel dengan `media_type=CAROUSEL` dan `children={child1_id},{child2_id},...`.
+
+3. **Polling Transcoding Media Asinkron (`waitForMediaReady`)**:
+   - Memantau endpoint `GET https://graph.threads.net/v1.0/{creationId}?fields=status,error_message` setiap 2 detik.
+   - Batas tunggu adaptif: hingga **40 detik untuk video MP4** dan **15 detik untuk gambar**.
+   - Berhasil jika status berubah menjadi `FINISHED`. Melempar error jika berstatus `ERROR` atau `EXPIRED`.
+
+4. **Penerbitan Kontainer (`publishContainer`)**:
    - `POST https://graph.threads.net/v1.0/{userId}/threads_publish`
-   - Parameter: `access_token`, `creation_id`.
+   - Body (`URLSearchParams`): `access_token`, `creation_id`.
    - Mengembalikan: `{ id: threads_post_id }`.
+
+5. **Deep Reply Scanning (`handleCheckReplies`)**:
+   - Memindai hingga **20 postingan utama teratas** dalam rentang **7 hari terakhir**.
+   - Mengecualikan `type: 'SELF_REPLY'` (komentar link affiliate internal bot) agar tidak memakan slot pemindaian thread diskusi organik.
+   - Menjamin komentar audiens pada postingan beberapa hari lalu tetap terdeteksi dan dibalas secara otonom.
 
 ### 7.2 Alur Autentikasi OAuth 2.0 & Token Exchange
 1. Pengguna mengklik tombol **Connect Threads** di halaman `/settings`.
@@ -404,7 +424,7 @@ Semua rute backend menggunakan **Next.js 14 App Router Route Handlers**:
 
 | Endpoint | Method | Fungsi & Deskripsi | Request Body / Query Params |
 |---|---|---|---|
-| `/api/cron/wake` | `GET` | Endpoint yang dipanggil oleh cron Vercel atau external scheduler untuk membangunkan siklus agen | Headers: `Authorization: Bearer <CRON_SECRET>` atau query `?secret=...` |
+| `/api/cron/wake` | `GET` | Endpoint penjadwal otonom 24/7 (dipanggil GAS setiap 5m). Batas posting harian: 14 post/hari (`MAX_DAILY_POSTS = 14`), jitter 25-45m, `maxDuration = 60s`, dan deep reply scanner 7 hari / 20 post. | Headers: `Authorization: Bearer <CRON_SECRET>` atau query `?secret=...` |
 | `/api/agent/cycle` | `POST` | Menjalankan satu siklus otonom: claim job antrean atau buat job baru berdasarkan cooldown & mood | `{}` (Tidak memerlukan body) |
 | `/api/agent/compose` | `POST` | Memicu pembuatan draf postingan baru secara langsung berdasarkan topik atau produk tertentu | JSON: `{ type?: PostType, topic?: string, productId?: string }` |
 | `/api/agent/discover`| `POST` | Meminta AI mencari 3 topik atau hook percakapan segar yang relevan dengan niche saat ini | `{}` |
