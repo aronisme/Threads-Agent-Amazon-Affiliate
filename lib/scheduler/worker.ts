@@ -495,6 +495,8 @@ export class WorkerRunner {
       });
       if (publishedResult.success) {
         status = 'PUBLISHED';
+      } else {
+        console.warn(`⚠️ [ReplyPublish] Failed to publish reply to ${replyToId}:`, publishedResult.error);
       }
     }
 
@@ -502,6 +504,7 @@ export class WorkerRunner {
     if (conn) {
       postRecord = await Post.create({
         threadsId: publishedResult?.threadsId || null,
+        creationId: publishedResult?.creationId || null,
         type: 'COMMUNITY_REPLY',
         text: quality.sanitizedText,
         parentId: replyToId,
