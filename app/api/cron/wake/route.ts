@@ -5,6 +5,7 @@ import stateManager from '@/lib/memory/stateManager';
 import { getUSHour } from '@/lib/engines/socialEngine';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const startTime = Date.now();

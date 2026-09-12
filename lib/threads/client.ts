@@ -162,7 +162,7 @@ export class ThreadsClient {
 
       // Step 2: If image or video, wait for Meta to finish transcoding/preparing
       if (options.imageUrl || options.videoUrl) {
-        await this.waitForMediaReady(creationId, options.videoUrl ? 25 : 12);
+        await this.waitForMediaReady(creationId, options.videoUrl ? 40 : 15);
       }
 
       // Step 3: Publish Container
