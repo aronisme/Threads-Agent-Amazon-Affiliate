@@ -50,21 +50,19 @@ export class ThreadsClient {
     }
 
     const url = `${THREADS_API_BASE}/${this.userId}/threads`;
-    const body: Record<string, string> = {
-      access_token: this.accessToken,
-      text: options.text,
-      media_type: options.imageUrl ? 'IMAGE' : options.videoUrl ? 'VIDEO' : 'TEXT',
-    };
+    const params = new URLSearchParams();
+    params.set('access_token', this.accessToken);
+    if (options.text) params.set('text', options.text);
+    params.set('media_type', options.imageUrl ? 'IMAGE' : options.videoUrl ? 'VIDEO' : 'TEXT');
 
-    if (options.replyToId) body.reply_to_id = options.replyToId;
-    if (options.quotePostId) body.quote_post_id = options.quotePostId;
-    if (options.imageUrl) body.image_url = options.imageUrl;
-    if (options.videoUrl) body.video_url = options.videoUrl;
+    if (options.replyToId) params.set('reply_to_id', options.replyToId);
+    if (options.quotePostId) params.set('quote_post_id', options.quotePostId);
+    if (options.imageUrl) params.set('image_url', options.imageUrl);
+    if (options.videoUrl) params.set('video_url', options.videoUrl);
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: params,
     });
 
     const data = await res.json();
@@ -84,13 +82,13 @@ export class ThreadsClient {
     }
 
     const url = `${THREADS_API_BASE}/${this.userId}/threads_publish`;
+    const params = new URLSearchParams({
+      access_token: this.accessToken,
+      creation_id: creationId,
+    });
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        access_token: this.accessToken,
-        creation_id: creationId,
-      }),
+      body: params,
     });
 
     const data = await res.json();
@@ -220,15 +218,15 @@ export class ThreadsClient {
       const itemContainerIds: string[] = [];
       for (const imgUrl of validUrls.slice(0, 5)) {
         const url = `${THREADS_API_BASE}/${this.userId}/threads`;
+        const params = new URLSearchParams({
+          access_token: this.accessToken,
+          media_type: 'IMAGE',
+          image_url: imgUrl,
+          is_carousel_item: 'true',
+        });
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            access_token: this.accessToken,
-            media_type: 'IMAGE',
-            image_url: imgUrl,
-            is_carousel_item: true,
-          }),
+          body: params,
         });
         const data = await res.json();
         if (!res.ok || data.error) {
@@ -244,18 +242,17 @@ export class ThreadsClient {
 
       // Step 3: Create parent Carousel container
       const carouselUrl = `${THREADS_API_BASE}/${this.userId}/threads`;
-      const carouselBody: Record<string, any> = {
+      const carouselParams = new URLSearchParams({
         access_token: this.accessToken,
         media_type: 'CAROUSEL',
         children: itemContainerIds.join(','),
         text: options.text,
-      };
-      if (options.replyToId) carouselBody.reply_to_id = options.replyToId;
+      });
+      if (options.replyToId) carouselParams.set('reply_to_id', options.replyToId);
 
       const carouselRes = await fetch(carouselUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(carouselBody),
+        body: carouselParams,
       });
 
       const carouselData = await carouselRes.json();

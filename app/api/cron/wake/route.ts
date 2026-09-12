@@ -60,10 +60,11 @@ export async function GET(req: NextRequest) {
     const usHour = getUSHour('America/New_York');
     const isUSAwake = usHour >= 7 && usHour < 23;
 
+    const MAX_DAILY_POSTS = 14;
     const isPostAllowed =
       isUSAwake &&
       (!state.cooldowns.nextPostAllowedAt || new Date(state.cooldowns.nextPostAllowedAt) <= now) &&
-      state.dailyActions.postsCount < 6;
+      state.dailyActions.postsCount < MAX_DAILY_POSTS;
 
     // Check replies: In autonomous mode (Level 2 & 3), actively monitor inbound replies
     const shouldCheckReplies = state.autonomyLevel >= 2;

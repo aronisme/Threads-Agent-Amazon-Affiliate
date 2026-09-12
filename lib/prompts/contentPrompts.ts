@@ -146,5 +146,5 @@ Do NOT say "so many people asked in my DMs". Keep it clean, minimal, and authent
     ? `\nRECENT TOPICS / PHRASES TO AVOID DUPLICATING:\n${recentPostsSummary}\n`
     : '';
 
-  return `${instruction}\n${antiRepetitionClause}\nRemember: Output only the exact text for the Threads post.`;
+  return `${instruction}\n${antiRepetitionClause}\nRemember: Output ONLY the exact text for the Threads post. Keep total length strictly between 200 and 420 characters. NEVER exceed 480 characters.`;
 }
