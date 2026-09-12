@@ -1,5 +1,5 @@
 import connectToDatabase from '@/db/client';
-import { JobDocument } from '@/db/models/Job';
+import Job, { JobDocument } from '@/db/models/Job';
 import Post from '@/db/models/Post';
 import Product from '@/db/models/Product';
 import MediaStock from '@/db/models/MediaStock';
@@ -373,13 +373,15 @@ export class WorkerRunner {
    * Handle checking for inbound replies on recent published posts
    */
   private async handleCheckReplies(job: JobDocument, state: any, threadsClient: ThreadsClient) {
+    // Scan up to 20 recent root posts from the last 7 days (exclude self-replies so they don't consume slots)
     const recentPosts = await Post.find({
       status: 'PUBLISHED',
+      type: { $ne: 'SELF_REPLY' },
       threadsId: { $ne: null },
-      createdAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) }, // Last 48h
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
     })
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(20);
 
     let repliesDiscovered = 0;
 
@@ -396,6 +398,16 @@ export class WorkerRunner {
         // Check if we already created a reply post or already enqueued for this comment
         const alreadyReplied = await Post.findOne({ parentId: reply.id });
         if (alreadyReplied) {
+          continue;
+        }
+
+        // Check if already in queue
+        const alreadyQueued = await Job.findOne({
+          type: 'GENERATE_REPLY',
+          'payload.replyToId': reply.id,
+          status: { $in: ['PENDING', 'PROCESSING'] },
+        });
+        if (alreadyQueued) {
           continue;
         }
 
