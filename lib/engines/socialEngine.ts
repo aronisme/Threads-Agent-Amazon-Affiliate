@@ -116,14 +116,17 @@ export class SocialEngine {
     const roll = Math.random();
     let postType: 'ORIGINAL_THOUGHT' | 'QUESTION' | 'STORY' | 'CONTEXTUAL_PRODUCT' | 'VIRAL_MEDIA';
 
-    // Target distribution: ~48% Product (+links), ~25% Viral Media Video, ~17% Thought, ~10% Question
-    // Overall media posts (Product + Viral Media) reach ~70% - 75%!
-    if (allowProductCandidate && roll < 0.48) {
+    // M3+M4 FIX: Rebalanced from 48%/25%/17%/10% (73% commercial) to healthier ratio.
+    // Target: ~35% Product, ~20% Viral Media, ~22% Thought, ~13% Story, ~10% Question
+    // Overall media (Product + Viral): ~55% — commercially effective but not spammy.
+    if (allowProductCandidate && roll < 0.35) {
       postType = 'CONTEXTUAL_PRODUCT';
-    } else if (roll < 0.73) {
+    } else if (roll < 0.55) {
       postType = 'VIRAL_MEDIA';
-    } else if (roll < 0.90) {
+    } else if (roll < 0.77) {
       postType = 'ORIGINAL_THOUGHT';
+    } else if (roll < 0.90) {
+      postType = 'STORY';
     } else {
       postType = 'QUESTION';
     }

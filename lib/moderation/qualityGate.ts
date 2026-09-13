@@ -19,7 +19,7 @@ const BANNED_PATTERNS = [
   /hurry up/i,
 ];
 
-export function runQualityGate(text: string): QualityGateResult {
+export function runQualityGate(text: string, postType?: string): QualityGateResult {
   const reasons: string[] = [];
   let score = 95;
 
@@ -53,8 +53,15 @@ export function runQualityGate(text: string): QualityGateResult {
   }
 
   // 2. Check for commercial spam language
+  // K5 FIX: Whitelist #ad for SELF_REPLY and COMMUNITY_REPLY posts since FTC disclosure
+  // module intentionally appends #ad for legal compliance on affiliate links.
+  const isSelfReplyOrReply = postType === 'SELF_REPLY' || postType === 'COMMUNITY_REPLY';
   for (const pattern of BANNED_PATTERNS) {
     if (pattern.test(workingText)) {
+      // Skip #ad penalty for self-reply/reply posts (legally required disclosure)
+      if (isSelfReplyOrReply && pattern.source === '#ad\\b') {
+        continue;
+      }
       reasons.push(`Detected marketing/spam pattern: ${pattern.toString()}`);
       score -= 30;
     }

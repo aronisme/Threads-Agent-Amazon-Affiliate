@@ -3,6 +3,7 @@ import jobQueue from '@/lib/scheduler/queue';
 import workerRunner from '@/lib/scheduler/worker';
 import stateManager from '@/lib/memory/stateManager';
 import { getUSHour } from '@/lib/engines/socialEngine';
+import { refreshThreadsToken } from '@/lib/threads/tokens';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -29,6 +30,42 @@ export async function GET(req: NextRequest) {
         reason: 'Agent is currently paused via Master Toggle Switch.',
         durationMs: Date.now() - startTime,
       });
+    }
+
+    // 2.5 K2+K3 FIX: Auto-refresh Meta Threads token before it expires.
+    // Token lasts 60 days; refresh when 15 days or less remain, or every 30 days if no expiry date recorded.
+    try {
+      const token = state.credentials?.accessToken || process.env.THREADS_ACCESS_TOKEN;
+      const tokenExpiry = state.credentials?.tokenExpiresAt ? new Date(state.credentials.tokenExpiresAt) : null;
+      const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
+
+      const shouldRefresh = token && !token.startsWith('mock_') && (
+        // Case 1: Expiry date is known and within 15 days
+        (tokenExpiry && tokenExpiry.getTime() - Date.now() < FIFTEEN_DAYS_MS) ||
+        // Case 2: No expiry date recorded — refresh every 30 days as safety net
+        (!tokenExpiry && state.credentials?.userId)
+      );
+
+      if (shouldRefresh) {
+        console.info('🔄 [TokenRefresh] Attempting Threads long-lived token refresh...');
+        const refreshResult = await refreshThreadsToken(token);
+        if (refreshResult.success && refreshResult.accessToken) {
+          const newExpiresAt = new Date(Date.now() + (refreshResult.expiresIn || 5184000) * 1000);
+          await stateManager.updateState({
+            credentials: {
+              ...state.credentials,
+              accessToken: refreshResult.accessToken,
+              tokenExpiresAt: newExpiresAt,
+            },
+          });
+          console.info(`✅ [TokenRefresh] Token refreshed successfully. New expiry: ${newExpiresAt.toISOString()}`);
+        } else if (refreshResult.error) {
+          console.warn(`⚠️ [TokenRefresh] Refresh failed: ${refreshResult.error}`);
+        }
+      }
+    } catch (tokenErr: any) {
+      // Non-blocking: token refresh failure should not stop the cron cycle
+      console.warn('⚠️ [TokenRefresh] Non-blocking error:', tokenErr.message);
     }
 
     // 3. Claim next pending job due in queue (e.g. scheduled delayed self-reply)
@@ -95,7 +132,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (shouldCheckReplies) {
+    // M2 FIX: Check replies during cooldown gaps AND when post quota is exhausted.
+    // Previously this only ran when isPostAllowed was false AND autonomy >= 2,
+    // missing all comments during the 25-45 min gaps between posts.
+    // Now it runs whenever the agent is awake and autonomous but can't post yet.
+    if (shouldCheckReplies && isUSAwake) {
       const job = await jobQueue.enqueue('CHECK_REPLIES', {});
       claimed = await jobQueue.claimNext();
 

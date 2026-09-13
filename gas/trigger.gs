@@ -37,10 +37,9 @@ function triggerPublish() {
         'User-Agent': 'GoogleAppsScript-MultiCron/1.0'
       };
 
-      // Tambahkan parameter secret & header jika target memiliki secret
+      // S6 FIX: Send secret ONLY via Authorization header (not URL query param)
+      // URL query params appear in server access logs and could expose the secret.
       if (target.secret) {
-        var separator = requestUrl.indexOf('?') !== -1 ? '&' : '?';
-        requestUrl += separator + 'secret=' + encodeURIComponent(target.secret);
         headers['Authorization'] = 'Bearer ' + target.secret;
       }
 

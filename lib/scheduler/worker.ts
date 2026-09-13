@@ -215,20 +215,24 @@ export class WorkerRunner {
       rawContent = compliance.text;
     }
 
-    // 6. Quality Gate filter
-    const quality = runQualityGate(rawContent);
+    // 6. Quality Gate filter (K5 FIX: pass postType so #ad disclosure is whitelisted for SELF_REPLY)
+    const quality = runQualityGate(rawContent, postType);
 
-    // 7. Anti-repetition verification
+    // 7. Anti-repetition verification (K4 FIX: now actually blocks repetitive content)
     const repCheck = await memoryEngine.checkRepetition(quality.sanitizedText, state.recentTopics);
     if (repCheck.isRepetitive && repCheck.score > 70) {
-      console.warn(`⚠️ Post rejected by anti-repetition check (score: ${repCheck.score}): ${repCheck.reason}`);
+      console.warn(`⚠️ Post blocked by anti-repetition check (score: ${repCheck.score}): ${repCheck.reason}`);
+      quality.passed = false;
+      quality.score = Math.min(quality.score, 55);
+      quality.reasons.push(`Anti-repetition: ${repCheck.reason} (similarity: ${repCheck.score}%)`);
     }
 
     // 8. Determine publishing status based on Autonomy Level & Dry Run
     let status: 'DRAFT' | 'PUBLISHED' | 'QUEUED' = 'DRAFT';
     let publishedResult: any = null;
 
-    if (state.autonomyLevel >= 1 && quality.passed) {
+    // S1 FIX: Level 1 = Simulation only (draft). Level >= 2 = actual publish to Threads.
+    if (state.autonomyLevel >= 2 && quality.passed) {
       // Execute publish (attaching carousel, image, or video when applicable)
       if (mediaType === 'CAROUSEL' && attachedImageUrls && attachedImageUrls.length >= 2) {
         publishedResult = await threadsClient.publishCarousel({
@@ -330,13 +334,22 @@ export class WorkerRunner {
       // Record commercial budget impact
       if (postType === 'SELF_REPLY') {
         await stateManager.recordCommercialActivity('DIRECT_LINK');
+        // S3 FIX: Set self-reply cooldown (30 min) to prevent rapid-fire link replies
+        const selfReplyCooldown = new Date(Date.now() + 30 * 60 * 1000);
+        const currentState = await stateManager.getState();
+        currentState.cooldowns.selfReplyUntil = selfReplyCooldown;
+        if (typeof currentState.save === 'function') {
+          await currentState.save();
+        }
       } else if (postType === 'CONTEXTUAL_PRODUCT') {
         await stateManager.recordCommercialActivity('SOFT_RECOMMENDATION');
       }
 
       // STEALTH AFFILIATE FUNNEL:
       // If product post was published and autonomy permits, queue a self-reply with link in 2 minutes
-      if (status === 'PUBLISHED' && postType === 'CONTEXTUAL_PRODUCT' && state.autonomyLevel >= 2) {
+      // S3 FIX: Also check selfReplyUntil cooldown before enqueuing
+      const selfReplyAllowed = !state.cooldowns.selfReplyUntil || new Date(state.cooldowns.selfReplyUntil) <= new Date();
+      if (status === 'PUBLISHED' && postType === 'CONTEXTUAL_PRODUCT' && state.autonomyLevel >= 2 && selfReplyAllowed) {
         await jobQueue.enqueue(
           'COMPOSE_POST',
           {
@@ -373,6 +386,18 @@ export class WorkerRunner {
    * Handle checking for inbound replies on recent published posts
    */
   private async handleCheckReplies(job: JobDocument, state: any, threadsClient: ThreadsClient) {
+    // S2 FIX: Resolve agent's own Threads username to avoid replying to self.
+    // threadsUsername was never populated in schema, so we fetch it from profile API.
+    let ownUsername = '';
+    try {
+      const profile = await threadsClient.getProfile();
+      if (profile?.username) {
+        ownUsername = profile.username.toLowerCase();
+      }
+    } catch {
+      // Non-blocking: if profile fetch fails, we'll still skip by post parentId match
+    }
+
     // Scan up to 20 recent root posts from the last 7 days (exclude self-replies so they don't consume slots)
     const recentPosts = await Post.find({
       status: 'PUBLISHED',
@@ -390,8 +415,8 @@ export class WorkerRunner {
       const conversationReplies = await threadsClient.getConversation(post.threadsId);
 
       for (const reply of conversationReplies) {
-        // Don't reply to our own account
-        if (reply.username && state.threadsUsername && reply.username.toLowerCase() === state.threadsUsername.toLowerCase()) {
+        // S2 FIX: Skip our own comments using resolved username
+        if (reply.username && ownUsername && reply.username.toLowerCase() === ownUsername) {
           continue;
         }
 
@@ -482,7 +507,7 @@ export class WorkerRunner {
       rawContent = compliance.text;
     }
 
-    const quality = runQualityGate(rawContent);
+    const quality = runQualityGate(rawContent, 'COMMUNITY_REPLY');
 
     let status: 'DRAFT' | 'PUBLISHED' = 'DRAFT';
     let publishedResult: any = null;
@@ -576,7 +601,10 @@ export class WorkerRunner {
         if (state.recentTopics.length > 20) {
           state.recentTopics = state.recentTopics.slice(0, 20);
         }
-        await state.save();
+        // S5 FIX: Guard state.save() for in-memory mode compatibility
+        if (typeof state.save === 'function') {
+          await state.save();
+        }
       }
     } catch (err: any) {
       console.warn('⚠️ [Worker] Error syncing US trends in handleDiscoverTopics:', err.message);
