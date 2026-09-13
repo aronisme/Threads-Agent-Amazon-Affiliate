@@ -52,8 +52,10 @@ let inMemoryState: any = {
     mistralModel: process.env.MISTRAL_MODEL || 'open-mistral-7b',
     xkiroKeys: (process.env.XKIRO_API_KEY || '').split(',').map((k) => k.trim()).filter(Boolean),
     xkiroBaseUrl: process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1',
-    xkiroModel: process.env.XKIRO_MODEL || 'qwen/qwen3.8-max',
-    preferredProvider: 'auto',
+    xkiroModel: process.env.XKIRO_MODEL || 'mistralai/mistral-large-2512',
+    geminiKeys: (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '').split(',').map((k) => k.trim()).filter(Boolean),
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+    preferredProvider: 'mistral',
   },
   cooldowns: {
     productMentionUntil: null,

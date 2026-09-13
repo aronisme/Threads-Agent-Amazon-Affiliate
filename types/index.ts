@@ -37,7 +37,7 @@ export interface IVisualContext {
   scaleAndForm: string;
   keyVisualHooks: string[];
   summaryDescription: string;
-  provider?: 'groq' | 'xkiro' | 'mistral' | 'heuristic' | 'mock';
+  provider?: 'groq' | 'xkiro' | 'mistral' | 'gemini' | 'heuristic' | 'mock';
   modelUsed?: string;
   analyzedAt?: Date;
 }
@@ -247,7 +247,9 @@ export interface IAICredentials {
   xkiroKeys?: string[];
   xkiroBaseUrl?: string;
   xkiroModel?: string;
-  preferredProvider?: 'auto' | 'mistral' | 'groq' | 'xkiro';
+  geminiKeys?: string[];
+  geminiModel?: string;
+  preferredProvider?: 'auto' | 'mistral' | 'gemini' | 'groq' | 'xkiro';
 }
 
 export interface IAgentState {

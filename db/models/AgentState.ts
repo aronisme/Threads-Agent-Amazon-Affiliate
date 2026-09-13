@@ -66,8 +66,10 @@ const AIConfigSchema = new Schema(
     mistralModel: { type: String, default: 'open-mistral-7b' },
     xkiroKeys: [{ type: String }],
     xkiroBaseUrl: { type: String, default: 'https://api.xkiro.com/v1' },
-    xkiroModel: { type: String, default: 'qwen/qwen3.8-max' },
-    preferredProvider: { type: String, enum: ['auto', 'mistral', 'groq', 'xkiro'], default: 'auto' },
+    xkiroModel: { type: String, default: 'mistralai/mistral-large-2512' },
+    geminiKeys: [{ type: String }],
+    geminiModel: { type: String, default: 'gemini-3.6-flash' },
+    preferredProvider: { type: String, enum: ['auto', 'mistral', 'gemini', 'groq', 'xkiro'], default: 'mistral' },
   },
   { _id: false }
 );

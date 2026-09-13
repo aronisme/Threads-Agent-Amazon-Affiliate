@@ -137,54 +137,116 @@ Respond ONLY with valid JSON in this exact structure without markdown or backtic
     const imagePayloadUrl = await this.resolveImagePayload(frameUrls[0] || imageUrl);
 
     // =========================================================================
-    // TIER 2: XKiro AI VISION (Qwen Vision/VL OpenAI-Compatible endpoint)
+    // TIER 2: GOOGLE GEMINI VISION (gemini-3.6-flash / gemini-2.5-flash)
+    // =========================================================================
+    const geminiKeyStr = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
+    const geminiKeys = geminiKeyStr.split(',').map((k) => k.trim()).filter(Boolean);
+    if (geminiKeys.length > 0) {
+      for (const key of geminiKeys) {
+        try {
+          const model = process.env.GEMINI_VISION_MODEL || process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+          const parts: any[] = [{ text: visionPrompt }];
+
+          // Handle base64 image data or URL
+          const match = imagePayloadUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            parts.push({
+              inline_data: {
+                mime_type: match[1],
+                data: match[2],
+              },
+            });
+          }
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 500,
+                responseMimeType: 'application/json',
+              },
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+            const parsed = this.parseVisionJSON(content);
+            if (parsed) {
+              return {
+                ...parsed,
+                provider: 'gemini',
+                modelUsed: model,
+                analyzedAt: new Date(),
+              };
+            }
+          } else {
+            const errText = await res.text();
+            console.warn(`⚠️ Gemini Vision failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
+          }
+        } catch (err: any) {
+          console.warn('⚠️ Gemini Vision exception:', err?.message || err);
+        }
+      }
+    }
+
+    // =========================================================================
+    // TIER 3: XKiro AI VISION (SenseNova 6.8 Flash-Lite / Mistral Medium 3.5)
     // =========================================================================
     const xkiroKey = process.env.XKIRO_API_KEY?.split(',')[0]?.trim();
     if (xkiroKey) {
-      try {
-        const xkiroBaseUrl = process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1';
-        const model = process.env.XKIRO_VISION_MODEL || 'qwen/qwen3-vl-plus:free';
+      const candidateModels = (process.env.XKIRO_VISION_MODEL || 'sensenova/sensenova-6.8-flash-lite,mistralai/mistral-medium-3.5')
+        .split(',')
+        .map((m) => m.trim())
+        .filter(Boolean);
 
-        const res = await fetch(`${xkiroBaseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${xkiroKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: visionPrompt },
-                  { type: 'image_url', image_url: { url: imagePayloadUrl } },
-                ],
-              },
-            ],
-            temperature: 0.3,
-            max_tokens: 500,
-          }),
-        });
+      for (const model of candidateModels) {
+        try {
+          const xkiroBaseUrl = process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1';
+          const res = await fetch(`${xkiroBaseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${xkiroKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: visionPrompt },
+                    { type: 'image_url', image_url: { url: imagePayloadUrl } },
+                  ],
+                },
+              ],
+              temperature: 0.3,
+              max_tokens: 500,
+            }),
+          });
 
-        if (res.ok) {
-          const data = await res.json();
-          const content = data.choices?.[0]?.message?.content?.trim() || '';
-          const parsed = this.parseVisionJSON(content);
-          if (parsed) {
-            return {
-              ...parsed,
-              provider: 'xkiro',
-              modelUsed: model,
-              analyzedAt: new Date(),
-            };
+          if (res.ok) {
+            const data = await res.json();
+            const content = data.choices?.[0]?.message?.content?.trim() || '';
+            const parsed = this.parseVisionJSON(content);
+            if (parsed) {
+              return {
+                ...parsed,
+                provider: 'xkiro',
+                modelUsed: model,
+                analyzedAt: new Date(),
+              };
+            }
+          } else {
+            const errText = await res.text();
+            console.warn(`⚠️ xKiro Vision model [${model}] failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
           }
-        } else {
-          const errText = await res.text();
-          console.warn(`⚠️ xKiro Vision failed (HTTP ${res.status}): ${errText.substring(0, 150)}`);
+        } catch (err) {
+          console.warn(`⚠️ xKiro Vision exception for [${model}]:`, err);
         }
-      } catch (err) {
-        console.warn('⚠️ xKiro Vision exception:', err);
       }
     }
 

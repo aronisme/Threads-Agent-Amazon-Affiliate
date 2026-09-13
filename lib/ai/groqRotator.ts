@@ -10,12 +10,12 @@ export interface AIGenerationOptions {
   temperature?: number;
   maxTokens?: number;
   model?: string;
-  provider?: 'auto' | 'mistral' | 'groq' | 'xkiro';
+  provider?: 'auto' | 'mistral' | 'gemini' | 'groq' | 'xkiro';
 }
 
 export interface AIGenerationResult {
   text: string;
-  provider: 'groq' | 'xkiro' | 'mistral' | 'mock';
+  provider: 'groq' | 'xkiro' | 'mistral' | 'gemini' | 'mock';
   modelUsed: string;
   durationMs: number;
 }
@@ -32,6 +32,7 @@ class AIRotatorEngine {
   private groqKeyIndex = 0;
   private mistralKeyIndex = 0;
   private xkiroKeyIndex = 0;
+  private geminiKeyIndex = 0;
 
   /**
    * Mark a key with error status (e.g. 401 invalid, 429 cooldown)
@@ -97,13 +98,24 @@ class AIRotatorEngine {
     const dbXkiro = (dbConfig.xkiroKeys || []).map((k: string) => k.trim()).filter(Boolean);
     const xkiroKeys = Array.from(new Set([...dbXkiro, ...envXkiro]));
     const xkiroBaseUrl = dbConfig.xkiroBaseUrl || process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1';
-    const xkiroModel = dbConfig.xkiroModel || process.env.XKIRO_MODEL || 'qwen/qwen3.8-max';
+    const xkiroModel = dbConfig.xkiroModel || process.env.XKIRO_MODEL || 'mistralai/mistral-large-2512';
 
-    const preferredProvider = dbConfig.preferredProvider || 'auto';
+    // Gemini Keys
+    const envGemini = (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '')
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+    const dbGemini = (dbConfig.geminiKeys || []).map((k: string) => k.trim()).filter(Boolean);
+    const geminiKeys = Array.from(new Set([...dbGemini, ...envGemini]));
+    const geminiModel = dbConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+
+    const preferredProvider = dbConfig.preferredProvider || 'mistral';
 
     return {
       mistralKeys,
       mistralModel,
+      geminiKeys,
+      geminiModel,
       groqKeys,
       groqModel,
       xkiroKeys,
@@ -123,28 +135,33 @@ class AIRotatorEngine {
 
     const config = await this.getResolvedConfig();
 
-    // Determine execution order
-    const providersToTry: Array<'mistral' | 'groq' | 'xkiro'> = [];
+    // Determine execution order: Mistral -> Gemini -> xKiro -> Groq
+    const providersToTry: Array<'mistral' | 'gemini' | 'groq' | 'xkiro'> = [];
 
     if (options.provider && options.provider !== 'auto') {
       providersToTry.push(options.provider);
     } else if (config.preferredProvider && config.preferredProvider !== 'auto') {
       providersToTry.push(config.preferredProvider as any);
       if (config.preferredProvider !== 'mistral') providersToTry.push('mistral');
-      if (config.preferredProvider !== 'groq') providersToTry.push('groq');
+      if (config.preferredProvider !== 'gemini') providersToTry.push('gemini');
       if (config.preferredProvider !== 'xkiro') providersToTry.push('xkiro');
+      if (config.preferredProvider !== 'groq') providersToTry.push('groq');
     } else {
-      // Default auto order: Prioritize providers with healthy keys
-      // Mistral first if it has healthy keys (tested highly reliable)
+      // Default auto order: Prioritize verified healthy providers
       const healthyMistral = this.getHealthyKeys(config.mistralKeys);
+      const healthyGemini = this.getHealthyKeys(config.geminiKeys);
+      const healthyXkiro = this.getHealthyKeys(config.xkiroKeys);
       const healthyGroq = this.getHealthyKeys(config.groqKeys);
 
       if (healthyMistral.length > 0) providersToTry.push('mistral');
+      if (healthyGemini.length > 0) providersToTry.push('gemini');
+      if (healthyXkiro.length > 0) providersToTry.push('xkiro');
       if (healthyGroq.length > 0) providersToTry.push('groq');
-      providersToTry.push('xkiro');
-      // If none added, fallback to trying all
+
+      // Guarantee fallback sequence
       if (!providersToTry.includes('mistral')) providersToTry.push('mistral');
-      if (!providersToTry.includes('groq')) providersToTry.push('groq');
+      if (!providersToTry.includes('gemini')) providersToTry.push('gemini');
+      if (!providersToTry.includes('xkiro')) providersToTry.push('xkiro');
     }
 
     for (const provider of providersToTry) {
@@ -193,6 +210,75 @@ class AIRotatorEngine {
           } catch (err) {
             this.markKeyStatus(key, 500);
             console.warn('⚠️ Mistral request error:', err);
+          }
+        }
+      }
+
+      if (provider === 'gemini') {
+        const healthyKeys = this.getHealthyKeys(config.geminiKeys);
+        if (healthyKeys.length > 0) {
+          const key = healthyKeys[this.geminiKeyIndex % healthyKeys.length];
+          this.geminiKeyIndex = (this.geminiKeyIndex + 1) % healthyKeys.length;
+
+          // Format payload for Gemini API
+          const systemMsg = options.messages.find((m) => m.role === 'system')?.content;
+          const userMsgs = options.messages.filter((m) => m.role !== 'system');
+          const contents = userMsgs.map((m) => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }],
+          }));
+
+          const candidateModels = Array.from(new Set([
+            options.model,
+            config.geminiModel,
+            'gemini-3.6-flash',
+            'gemini-3.8-flash',
+            'gemini-2.5-flash',
+          ].filter(Boolean) as string[]));
+
+          for (const model of candidateModels) {
+            try {
+              const bodyPayload: any = {
+                contents,
+                generationConfig: {
+                  temperature,
+                  maxOutputTokens: maxTokens,
+                },
+              };
+              if (systemMsg) {
+                bodyPayload.systemInstruction = {
+                  parts: [{ text: systemMsg }],
+                };
+              }
+
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyPayload),
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+                if (text) {
+                  return {
+                    text,
+                    provider: 'gemini',
+                    modelUsed: model,
+                    durationMs: Date.now() - startTime,
+                  };
+                }
+              }
+
+              if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 429) {
+                this.markKeyStatus(key, res.status);
+              }
+              const errText = await res.text();
+              console.warn(`⚠️ Gemini model [${model}] failed (HTTP ${res.status}): ${errText.substring(0, 120)}`);
+            } catch (err: any) {
+              this.markKeyStatus(key, 500);
+              console.warn(`⚠️ Gemini request exception for [${model}]:`, err?.message);
+            }
           }
         }
       }
@@ -251,39 +337,51 @@ class AIRotatorEngine {
           const key = healthyKeys[this.xkiroKeyIndex % healthyKeys.length];
           this.xkiroKeyIndex = (this.xkiroKeyIndex + 1) % healthyKeys.length;
 
-          try {
-            const model = config.xkiroModel || 'qwen/qwen3.8-max';
-            const res = await fetch(`${config.xkiroBaseUrl}/chat/completions`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${key}`,
-              },
-              body: JSON.stringify({
-                model,
-                messages: options.messages,
-                temperature,
-                max_tokens: maxTokens,
-              }),
-            });
+          const configuredModels = (config.xkiroModel || 'mistralai/mistral-large-2512')
+            .split(',')
+            .map((m: string) => m.trim())
+            .filter(Boolean);
+          if (!configuredModels.includes('mistralai/mistral-large-2512')) {
+            configuredModels.unshift('mistralai/mistral-large-2512');
+          }
+          if (!configuredModels.includes('mistralai/mistral-medium-3.5')) {
+            configuredModels.push('mistralai/mistral-medium-3.5');
+          }
 
-            if (res.ok) {
-              const data = await res.json();
-              const text = data.choices?.[0]?.message?.content?.trim() || '';
-              if (text) {
-                return {
-                  text,
-                  provider: 'xkiro',
-                  modelUsed: model,
-                  durationMs: Date.now() - startTime,
-                };
+          for (const model of configuredModels) {
+            try {
+              const res = await fetch(`${config.xkiroBaseUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${key}`,
+                },
+                body: JSON.stringify({
+                  model,
+                  messages: options.messages,
+                  temperature,
+                  max_tokens: maxTokens,
+                }),
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                const text = data.choices?.[0]?.message?.content?.trim() || '';
+                if (text) {
+                  return {
+                    text,
+                    provider: 'xkiro',
+                    modelUsed: model,
+                    durationMs: Date.now() - startTime,
+                  };
+                }
               }
-            }
 
-            this.markKeyStatus(key, res.status);
-          } catch (err) {
-            this.markKeyStatus(key, 500);
-            console.warn('⚠️ xKiro failover error:', err);
+              this.markKeyStatus(key, res.status);
+            } catch (err) {
+              this.markKeyStatus(key, 500);
+              console.warn(`⚠️ xKiro failover error for model [${model}]:`, err);
+            }
           }
         }
       }
