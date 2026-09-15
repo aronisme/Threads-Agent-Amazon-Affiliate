@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       postType = 'ORIGINAL_THOUGHT' as PostType,
       imageUrl,   // Direct image URL for vision analysis
       videoUrl,   // Direct video URL for vision analysis
+      userGuidance = '', // User custom guidance/suggestions for the AI
     } = body;
 
     const state = await stateManager.getState();
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Build prompts
+    // 4. Build prompts with multi-style variations & user guidance
     if (!chosenTopic) {
       const nicheTopics = state.persona?.nicheTopics || ['desk setup', 'tech gadgets'];
       chosenTopic = nicheTopics[Math.floor(Math.random() * nicheTopics.length)];
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
     const recentSummary = recentPosts.join(' | ');
 
     const sysPrompt = buildSystemPrompt(state.persona, state.currentMood);
-    const userPrompt = buildContentPrompt(
+    const baseContentPrompt = buildContentPrompt(
       postType as PostType,
       chosenTopic,
       targetProduct,
@@ -115,19 +116,128 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    // 5. Generate caption with AI
+    const userGuidanceBlock = userGuidance && typeof userGuidance === 'string' && userGuidance.trim()
+      ? `\n🎯 CREATOR'S SPECIFIC GUIDANCE & CREATIVE DIRECTION:\n"${userGuidance.trim()}"\nCRITICAL: You MUST strictly incorporate this guidance, angle, or preference into all generated caption variations below while adapting each to its respective style.\n`
+      : '';
+
+    const multiStylePrompt = `${baseContentPrompt}
+${userGuidanceBlock}
+POST LAB MULTI-STYLE REQUIREMENT:
+Generate exactly 4 distinct caption options with different creative angles so the creator can choose the best fit:
+
+1. Style "CASUAL": Casual, relatable, spontaneous everyday thought or observation. Relaxed & authentic.
+2. Style "HOOK": Punchy scroll-stopping curiosity hook in the first line. High intrigue, unexpected realization, or provocative question.
+3. Style "STORY": Micro-story (2-3 sentences) or relatable confession/scenario. Setup -> relatable moment -> takeaway.
+4. Style "WITTY": Witty, slightly sarcastic, humorous take or clever meme-adjacent thought without cringe.
+
+STRICT CONSTRAINTS FOR EACH CAPTION:
+- Character count: between 160 and 420 characters. Never exceed 480 characters.
+- NO hashtags, NO links (unless self-reply), NO markdown asterisks (** or *).
+- Natural Threads conversational flow.
+
+Respond ONLY with a valid JSON object matching this exact structure:
+{
+  "variations": [
+    {
+      "styleKey": "CASUAL",
+      "styleLabel": "Casual & Chill",
+      "styleLabelId": "Santai & Relate",
+      "angle": "Everyday relaxed observation",
+      "caption": "caption text here"
+    },
+    {
+      "styleKey": "HOOK",
+      "styleLabel": "Punchy Hook",
+      "styleLabelId": "Hook Bikin Penasaran",
+      "angle": "Curiosity-driven opening hook",
+      "caption": "caption text here"
+    },
+    {
+      "styleKey": "STORY",
+      "styleLabel": "Micro-Story",
+      "styleLabelId": "Cerita Pengalaman",
+      "angle": "Relatable micro-story scenario",
+      "caption": "caption text here"
+    },
+    {
+      "styleKey": "WITTY",
+      "styleLabel": "Witty & Sarcastic",
+      "styleLabelId": "Lucu & Witty",
+      "angle": "Playful sarcastic perspective",
+      "caption": "caption text here"
+    }
+  ]
+}`;
+
+    // 5. Generate captions with AI
     const aiRes = await aiEngine.generate({
       messages: [
         { role: 'system', content: sysPrompt },
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: multiStylePrompt },
       ],
       temperature: 0.85,
-      maxTokens: 350,
+      maxTokens: 850,
     });
+
+    // 6. Parse JSON variations with resilient fallbacks
+    let variations: Array<{
+      styleKey: string;
+      styleLabel: string;
+      styleLabelId: string;
+      angle: string;
+      caption: string;
+    }> = [];
+
+    try {
+      let cleanedText = aiRes.text.trim();
+      const match = cleanedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (match) {
+        cleanedText = match[1].trim();
+      } else {
+        const firstBrace = cleanedText.indexOf('{');
+        const lastBrace = cleanedText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
+        }
+      }
+      const parsed = JSON.parse(cleanedText);
+      if (Array.isArray(parsed.variations) && parsed.variations.length > 0) {
+        variations = parsed.variations.map((v: any) => ({
+          styleKey: String(v.styleKey || 'CASUAL').toUpperCase(),
+          styleLabel: v.styleLabel || 'Casual',
+          styleLabelId: v.styleLabelId || 'Santai',
+          angle: v.angle || '',
+          caption: (v.caption || '').replace(/[\*\_]/g, '').trim(),
+        }));
+      }
+    } catch (parseErr) {
+      console.warn('⚠️ Could not parse JSON variations from AI, using fallback:', parseErr);
+    }
+
+    // Fallback if JSON parsing didn't return variations
+    if (!variations || variations.length === 0) {
+      const cleanSingle = aiRes.text
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .replace(/[\*\_]/g, '')
+        .trim();
+      variations = [
+        {
+          styleKey: 'CASUAL',
+          styleLabel: 'Casual & Chill',
+          styleLabelId: 'Santai & Relate',
+          angle: 'AI Generated Draft',
+          caption: cleanSingle,
+        },
+      ];
+    }
+
+    const primaryCaption = variations[0]?.caption || '';
 
     return NextResponse.json({
       success: true,
-      caption: aiRes.text,
+      caption: primaryCaption,
+      variations,
       provider: aiRes.provider,
       modelUsed: aiRes.modelUsed,
       durationMs: aiRes.durationMs,
@@ -141,6 +251,7 @@ export async function POST(req: NextRequest) {
       } : null,
       mediaType,
       topic: chosenTopic,
+      userGuidanceApplied: !!userGuidance?.trim(),
     });
   } catch (err: any) {
     console.error('❌ Lab AI caption error:', err);
