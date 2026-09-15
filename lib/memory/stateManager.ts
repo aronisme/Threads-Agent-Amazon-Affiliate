@@ -40,6 +40,7 @@ let inMemoryState: any = {
   peopleToFollowUp: [],
   credentials: {
     userId: process.env.THREADS_USER_ID || '',
+    username: process.env.THREADS_USERNAME || 'averyfoundit',
     accessToken: process.env.THREADS_ACCESS_TOKEN || '',
     appId: process.env.THREADS_APP_ID || '',
     appSecret: process.env.THREADS_APP_SECRET || '',

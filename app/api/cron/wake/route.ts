@@ -4,6 +4,8 @@ import workerRunner from '@/lib/scheduler/worker';
 import stateManager from '@/lib/memory/stateManager';
 import { getUSHour } from '@/lib/engines/socialEngine';
 import { refreshThreadsToken } from '@/lib/threads/tokens';
+import Post from '@/db/models/Post';
+import ThreadsClient from '@/lib/threads/client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -92,7 +94,64 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 4. If queue is empty, evaluate whether a new action is allowed
+    // 4. Auto-publish scheduled Lab posts whose time has arrived
+    try {
+      const now = new Date();
+      const dueScheduled = await Post.find({
+        status: 'SCHEDULED',
+        source: 'LAB',
+        scheduledFor: { $lte: now },
+      }).sort({ scheduledFor: 1 }).limit(3);
+
+      if (dueScheduled.length > 0) {
+        const threadsClient = new ThreadsClient(undefined, undefined, state.dryRunMode);
+        const publishedIds: string[] = [];
+
+        for (const post of dueScheduled) {
+          try {
+            let pubResult: any;
+            if (post.mediaType === 'CAROUSEL' && post.imageUrls && post.imageUrls.length >= 2) {
+              pubResult = await threadsClient.publishCarousel({
+                text: post.text,
+                imageUrls: post.imageUrls,
+              });
+            } else {
+              pubResult = await threadsClient.publishPost({
+                text: post.text,
+                imageUrl: post.imageUrl || undefined,
+                videoUrl: post.videoUrl || undefined,
+              });
+            }
+
+            if (pubResult.success) {
+              post.status = 'PUBLISHED';
+              post.threadsId = pubResult.threadsId;
+              post.creationId = pubResult.creationId;
+              post.publishedAt = new Date();
+              await post.save();
+              publishedIds.push(post._id.toString());
+              console.info(`📅 [ScheduledPublish] Published scheduled Lab post: ${post._id}`);
+            }
+          } catch (pubErr: any) {
+            console.warn(`⚠️ [ScheduledPublish] Failed to publish ${post._id}:`, pubErr.message);
+          }
+        }
+
+        if (publishedIds.length > 0) {
+          return NextResponse.json({
+            success: true,
+            action: 'PUBLISHED_SCHEDULED',
+            publishedCount: publishedIds.length,
+            publishedIds,
+            durationMs: Date.now() - startTime,
+          });
+        }
+      }
+    } catch (schedErr: any) {
+      console.warn('⚠️ [ScheduledPublish] Non-blocking error:', schedErr.message);
+    }
+
+    // 5. If queue is empty, evaluate whether a new action is allowed
     const now = new Date();
 
     const usHour = getUSHour('America/New_York');

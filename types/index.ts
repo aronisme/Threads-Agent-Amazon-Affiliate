@@ -13,7 +13,7 @@ export type PostType =
 
 export type ReplyClass = 'AGREE' | 'DISAGREE' | 'ADD_VALUE' | 'PLAYFUL';
 
-export type PostStatus = 'DRAFT' | 'QUEUED' | 'PUBLISHED' | 'REJECTED';
+export type PostStatus = 'DRAFT' | 'QUEUED' | 'SCHEDULED' | 'PUBLISHED' | 'REJECTED';
 
 export type JobType =
   | 'DISCOVER_TOPICS'
@@ -138,6 +138,8 @@ export interface IPost {
   parentId?: string;
   replyClass?: ReplyClass;
   status: PostStatus;
+  source?: 'AI' | 'LAB';
+  scheduledFor?: Date;
   simulationData?: {
     fitScore: number;
     reasoning: string;
@@ -233,6 +235,7 @@ export interface IPersonaConfig {
 
 export interface IThreadsCredentials {
   userId?: string;
+  username?: string;
   accessToken?: string;
   appId?: string;
   appSecret?: string;

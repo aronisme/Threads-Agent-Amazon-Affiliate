@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Job from '@/db/models/Job';
+import Post from '@/db/models/Post';
+import connectToDatabase from '@/db/client';
 import workerRunner from '@/lib/scheduler/worker';
 
 export async function POST(req: NextRequest) {
@@ -9,6 +11,26 @@ export async function POST(req: NextRequest) {
 
     if (!incomingText) {
       return NextResponse.json({ success: false, error: 'incomingText is required' }, { status: 400 });
+    }
+
+    const cleanAuthor = (authorUsername || '').toLowerCase().replace(/^@/, '').trim();
+    const ownUsername = (process.env.THREADS_USERNAME || 'averyfoundit').toLowerCase();
+    if (cleanAuthor && (cleanAuthor === ownUsername || cleanAuthor === 'averyfoundit')) {
+      return NextResponse.json(
+        { success: false, error: 'Tidak dapat membalas komentar dari akun sendiri (@' + cleanAuthor + ').' },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+    if (replyToId) {
+      const isOwnPost = await Post.findOne({ threadsId: replyToId });
+      if (isOwnPost) {
+        return NextResponse.json(
+          { success: false, error: `Target ID ${replyToId} adalah postingan/komentar milik agen sendiri (${isOwnPost.type}).` },
+          { status: 400 }
+        );
+      }
     }
 
     const job = new Job({

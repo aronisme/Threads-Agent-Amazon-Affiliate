@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { LogOut } from 'lucide-react';
+import { LogOut, FlaskConical } from 'lucide-react';
 import LanguageToggle from './LanguageToggle';
 
 export default function Header() {
@@ -30,6 +30,7 @@ export default function Header() {
     { href: '/dashboard', label: strings.navDashboard },
     { href: '/products', label: strings.navProducts },
     { href: '/media-stock', label: (strings as any).navMediaStock || 'Media Stock' },
+    { href: '/labs', label: (strings as any).navLabs || 'Post Lab' },
     { href: '/persona', label: strings.navPersona },
     { href: '/activity', label: strings.navActivity },
     { href: '/settings', label: strings.navSettings },

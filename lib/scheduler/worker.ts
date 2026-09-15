@@ -59,6 +59,72 @@ export class WorkerRunner {
     let trendContext: any = job.payload.trendContext;
     let targetProduct: any = null;
 
+    // 0. Lab Stock Post Priority: Before generating a new post, check if there are
+    // human-crafted stock posts from Post Lab waiting to be published (FIFO order).
+    if (!postType && state.autonomyLevel >= 2) {
+      try {
+        const stockPost = await Post.findOne({
+          status: 'QUEUED',
+          source: 'LAB',
+        }).sort({ createdAt: 1 });
+
+        if (stockPost) {
+          let publishResult: any;
+          if (stockPost.mediaType === 'CAROUSEL' && stockPost.imageUrls && stockPost.imageUrls.length >= 2) {
+            publishResult = await threadsClient.publishCarousel({
+              text: stockPost.text,
+              imageUrls: stockPost.imageUrls,
+            });
+          } else {
+            publishResult = await threadsClient.publishPost({
+              text: stockPost.text,
+              imageUrl: stockPost.imageUrl || undefined,
+              videoUrl: stockPost.videoUrl || undefined,
+            });
+          }
+
+          if (publishResult.success) {
+            stockPost.status = 'PUBLISHED';
+            stockPost.threadsId = publishResult.threadsId;
+            stockPost.creationId = publishResult.creationId;
+            stockPost.publishedAt = new Date();
+            await stockPost.save();
+
+            // Update cooldowns and daily action counts
+            await stateManager.recordAction('post', 'lab-stock', undefined);
+            const cooldownMinutes = 25 + Math.floor(Math.random() * 20);
+            await stateManager.updateState({
+              cooldowns: {
+                ...state.cooldowns,
+                nextPostAllowedAt: new Date(Date.now() + cooldownMinutes * 60 * 1000),
+              },
+            });
+
+            await stateManager.recordLastAction(
+              'POST',
+              stockPost.type || 'ORIGINAL_THOUGHT',
+              'NONE',
+              `Published Lab stock post: ${stockPost.text.substring(0, 50)}...`
+            );
+
+            return {
+              success: true,
+              result: {
+                postId: stockPost._id,
+                text: stockPost.text,
+                status: 'PUBLISHED',
+                source: 'LAB',
+                isLabStock: true,
+                isMock: Boolean(publishResult.isMock),
+              },
+            };
+          }
+        }
+      } catch (stockErr: any) {
+        console.warn('⚠️ [LabStock] Non-blocking error checking stock posts:', stockErr.message);
+      }
+    }
+
     // 1. If post type is not strictly specified, run SocialEngine decision
     if (!postType) {
       const socialDecision = await socialEngine.decideAction(state);
@@ -386,22 +452,38 @@ export class WorkerRunner {
    * Handle checking for inbound replies on recent published posts
    */
   private async handleCheckReplies(job: JobDocument, state: any, threadsClient: ThreadsClient) {
-    // S2 FIX: Resolve agent's own Threads username to avoid replying to self.
-    // threadsUsername was never populated in schema, so we fetch it from profile API.
-    let ownUsername = '';
+    // 1. Resolve agent's own Threads username with multi-tier fallback
+    let ownUsername = (process.env.THREADS_USERNAME || state.credentials?.username || 'averyfoundit').toLowerCase();
     try {
       const profile = await threadsClient.getProfile();
       if (profile?.username) {
         ownUsername = profile.username.toLowerCase();
+        if (state.credentials && state.credentials.username !== ownUsername) {
+          state.credentials.username = ownUsername;
+          if (typeof state.save === 'function') await state.save();
+        }
       }
     } catch {
-      // Non-blocking: if profile fetch fails, we'll still skip by post parentId match
+      // Non-blocking fallback
     }
 
-    // Scan up to 20 recent root posts from the last 7 days (exclude self-replies so they don't consume slots)
+    // Set of all known own usernames for instant, case-insensitive comparison
+    const ownUsernames = new Set(
+      [
+        'averyfoundit',
+        ownUsername,
+        (process.env.THREADS_USERNAME || '').toLowerCase(),
+        (state.credentials?.username || '').toLowerCase(),
+        (state.persona?.identityName || '').toLowerCase(),
+      ]
+        .map((u) => u.replace(/^@/, '').trim())
+        .filter(Boolean)
+    );
+
+    // Scan up to 20 recent root posts from the last 7 days (only ROOT posts, strictly excluding self-replies and community replies)
     const recentPosts = await Post.find({
       status: 'PUBLISHED',
-      type: { $ne: 'SELF_REPLY' },
+      type: { $in: ['ORIGINAL_THOUGHT', 'QUESTION', 'STORY', 'CONTEXTUAL_PRODUCT', 'VIRAL_MEDIA'] },
       threadsId: { $ne: null },
       createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
     })
@@ -415,18 +497,25 @@ export class WorkerRunner {
       const conversationReplies = await threadsClient.getConversation(post.threadsId);
 
       for (const reply of conversationReplies) {
-        // S2 FIX: Skip our own comments using resolved username
-        if (reply.username && ownUsername && reply.username.toLowerCase() === ownUsername) {
+        // GUARD 1: Skip if reply.id is in our own database (100% bulletproof for SELF_REPLY or prior replies)
+        const isOwnPost = await Post.exists({ threadsId: reply.id });
+        if (isOwnPost) {
           continue;
         }
 
-        // Check if we already created a reply post or already enqueued for this comment
-        const alreadyReplied = await Post.findOne({ parentId: reply.id });
+        // GUARD 2: Skip our own comments using resolved username set
+        const cleanAuthor = (reply.username || '').toLowerCase().replace(/^@/, '').trim();
+        if (cleanAuthor && ownUsernames.has(cleanAuthor)) {
+          continue;
+        }
+
+        // GUARD 3: Check if we already created a reply post or already enqueued for this comment
+        const alreadyReplied = await Post.exists({ parentId: reply.id });
         if (alreadyReplied) {
           continue;
         }
 
-        // Check if already in queue
+        // GUARD 4: Check if already in queue
         const alreadyQueued = await Job.findOne({
           type: 'GENERATE_REPLY',
           'payload.replyToId': reply.id,
@@ -440,7 +529,7 @@ export class WorkerRunner {
         await jobQueue.enqueue('GENERATE_REPLY', {
           parentPostId: post._id.toString(),
           replyToId: reply.id,
-          authorUsername: reply.username,
+          authorUsername: reply.username || cleanAuthor,
           text: reply.text,
         });
         repliesDiscovered++;
@@ -456,6 +545,34 @@ export class WorkerRunner {
   private async handleGenerateReply(job: JobDocument, state: any, threadsClient: ThreadsClient) {
     const { replyToId, authorUsername, text: incomingText, parentPostId } = job.payload;
     if (!incomingText) return { success: false, error: 'No incoming text provided' };
+
+    // GUARD: Never reply to own account or own post/comment
+    const ownUsername = (process.env.THREADS_USERNAME || state.credentials?.username || 'averyfoundit').toLowerCase();
+    const ownUsernames = new Set(
+      [
+        'averyfoundit',
+        ownUsername,
+        (process.env.THREADS_USERNAME || '').toLowerCase(),
+        (state.credentials?.username || '').toLowerCase(),
+        (state.persona?.identityName || '').toLowerCase(),
+      ]
+        .map((u) => u.replace(/^@/, '').trim())
+        .filter(Boolean)
+    );
+
+    const cleanAuthor = (authorUsername || '').toLowerCase().replace(/^@/, '').trim();
+    if (cleanAuthor && ownUsernames.has(cleanAuthor)) {
+      console.warn(`🛑 [GenerateReply] Refusing to reply: author @${authorUsername} is our own account.`);
+      return { success: false, error: `Author @${authorUsername} is our own account` };
+    }
+
+    if (replyToId) {
+      const isOwnPost = await Post.findOne({ threadsId: replyToId });
+      if (isOwnPost) {
+        console.warn(`🛑 [GenerateReply] Refusing to reply: target ${replyToId} is our own post (${isOwnPost.type}).`);
+        return { success: false, error: `Target ${replyToId} is our own post` };
+      }
+    }
 
     // Evaluate commercial intent and context using AffiliateEngine
     const conn = await connectToDatabase();

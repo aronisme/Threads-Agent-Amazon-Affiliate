@@ -50,6 +50,7 @@ const PersonaSchema = new Schema(
 const CredentialsSchema = new Schema(
   {
     userId: { type: String, default: '' },
+    username: { type: String, default: 'averyfoundit' },
     accessToken: { type: String, default: '' },
     appId: { type: String, default: '' },
     appSecret: { type: String, default: '' },

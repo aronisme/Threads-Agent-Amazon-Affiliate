@@ -32,10 +32,17 @@ const PostSchema = new Schema<PostDocument>(
     },
     status: {
       type: String,
-      enum: ['DRAFT', 'QUEUED', 'PUBLISHED', 'REJECTED'],
+      enum: ['DRAFT', 'QUEUED', 'SCHEDULED', 'PUBLISHED', 'REJECTED'],
       default: 'DRAFT',
       index: true,
     },
+    source: {
+      type: String,
+      enum: ['AI', 'LAB'],
+      default: 'AI',
+      index: true,
+    },
+    scheduledFor: { type: Date, default: null, index: true },
     simulationData: {
       fitScore: { type: Number, default: 0 },
       reasoning: { type: String, default: '' },
