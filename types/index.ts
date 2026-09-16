@@ -295,6 +295,12 @@ export interface IAgentState {
     timestamp: Date;
     summary?: string;
   };
+  lastGasPingAt?: Date | string | null;
+  lastGasPing?: {
+    timestamp: Date | string;
+    userAgent?: string;
+    action?: string;
+  } | null;
   updatedAt: Date;
 }
 

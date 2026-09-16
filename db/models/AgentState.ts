@@ -117,6 +117,12 @@ const AgentStateSchema = new Schema<AgentStateDocument>(
       timestamp: { type: Date, default: () => new Date() },
       summary: { type: String, default: null },
     },
+    lastGasPingAt: { type: Date, default: null },
+    lastGasPing: {
+      timestamp: { type: Date, default: null },
+      userAgent: { type: String, default: null },
+      action: { type: String, default: 'PING' },
+    },
   },
   {
     timestamps: true,

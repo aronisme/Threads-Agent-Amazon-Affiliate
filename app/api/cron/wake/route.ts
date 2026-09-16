@@ -23,6 +23,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized wake signal' }, { status: 401 });
     }
 
+    // 1.5 Record GAS trigger/ping timestamp for dashboard telemetry
+    const userAgent = req.headers.get('user-agent') || 'GoogleAppsScript-MultiCron/1.0';
+    try {
+      await stateManager.recordGasPing({
+        userAgent,
+        action: 'WAKE',
+      });
+    } catch (pingErr: any) {
+      console.warn('⚠️ [GAS Ping] Non-blocking error recording ping:', pingErr.message);
+    }
+
     // 2. Master Kill-Switch: If agent is paused, exit immediately without executing any work
     const state = await stateManager.getState();
     if (state.isPaused) {

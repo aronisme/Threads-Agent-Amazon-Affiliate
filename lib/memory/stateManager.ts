@@ -85,6 +85,8 @@ let inMemoryState: any = {
     timestamp: new Date(),
     summary: 'System initialized',
   },
+  lastGasPingAt: null,
+  lastGasPing: null,
   updatedAt: new Date(),
 };
 
@@ -312,6 +314,37 @@ export class StateManager {
       timestamp: new Date(),
       summary: summary || null,
     };
+
+    if (typeof state.save === 'function') {
+      await state.save();
+    }
+  }
+
+  /**
+   * Record Google Apps Script (GAS) or cron wake ping
+   */
+  public async recordGasPing(details?: { userAgent?: string; action?: string }): Promise<void> {
+    const now = new Date();
+    const pingObj = {
+      timestamp: now,
+      userAgent: details?.userAgent || 'GoogleAppsScript-MultiCron/1.0',
+      action: details?.action || 'PING',
+    };
+
+    const conn = await connectToDatabase();
+    if (!conn) {
+      inMemoryState.lastGasPingAt = now;
+      inMemoryState.lastGasPing = pingObj;
+      return;
+    }
+
+    let state = await AgentState.findOne();
+    if (!state) {
+      state = await this.getState();
+    }
+
+    state.lastGasPingAt = now;
+    state.lastGasPing = pingObj;
 
     if (typeof state.save === 'function') {
       await state.save();

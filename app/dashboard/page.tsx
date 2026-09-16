@@ -28,10 +28,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [lastActionOutput, setLastActionOutput] = useState<any>(null);
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const [stateRes, postsRes, productsRes, trendsRes] = await Promise.all([
         fetch('/api/state').then((r) => r.json()),
         fetch('/api/posts?limit=8').then((r) => r.json()),
@@ -46,7 +47,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -70,6 +71,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // 15-second tick to keep relative times ('3 menit lalu') accurate in real-time
+    const timeInterval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 15000);
+
+    // 30-second background polling to pick up new GAS pings automatically
+    const pollInterval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 30000);
+
+    return () => {
+      clearInterval(timeInterval);
+      clearInterval(pollInterval);
+    };
   }, []);
 
   const handleRunCycle = async () => {
@@ -170,6 +186,80 @@ export default function DashboardPage() {
     }
   };
 
+  const getGasStatus = () => {
+    const rawTime = state?.lastGasPing?.timestamp || state?.lastGasPingAt;
+    if (!rawTime) {
+      return {
+        relativeText: language === 'id' ? 'Belum ada' : 'None yet',
+        fullLabel: language === 'id' ? 'GAS triger/ping : Belum ada' : 'GAS trigger/ping: None yet',
+        status: 'never',
+        dotClass: 'bg-zinc-500',
+        badgeClass: 'text-zinc-400 border-zinc-700 bg-zinc-800/40',
+        title: language === 'id' ? 'Belum ada ping yang tercatat dari Google Apps Script' : 'No ping recorded yet from Google Apps Script',
+      };
+    }
+
+    const pingMs = new Date(rawTime).getTime();
+    const diffMs = Math.max(0, currentTime - pingMs);
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+
+    let relativeText = '';
+    if (diffSec < 45) {
+      relativeText = language === 'id' ? 'baru saja' : 'just now';
+    } else if (diffMin < 60) {
+      relativeText = language === 'id' ? `${diffMin} menit lalu` : `${diffMin}m ago`;
+    } else if (diffHour < 24) {
+      relativeText = language === 'id' ? `${diffHour} jam lalu` : `${diffHour}h ago`;
+    } else {
+      const diffDays = Math.floor(diffHour / 24);
+      relativeText = language === 'id' ? `${diffDays} hari lalu` : `${diffDays}d ago`;
+    }
+
+    const fullLabel = language === 'id'
+      ? `GAS triger/ping : ${relativeText}`
+      : `GAS trigger/ping : ${relativeText}`;
+
+    // Google Apps Script triggers every 5 minutes
+    if (diffMin <= 7) {
+      return {
+        relativeText,
+        fullLabel,
+        status: 'active',
+        dotClass: 'bg-emerald-400 animate-pulse',
+        badgeClass: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
+        title: language === 'id'
+          ? `GAS aktif normal (Ping terakhir: ${new Date(rawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+          : `GAS running normally (Last ping: ${new Date(rawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+      };
+    }
+
+    if (diffMin <= 15) {
+      return {
+        relativeText,
+        fullLabel,
+        status: 'warning',
+        dotClass: 'bg-amber-400',
+        badgeClass: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
+        title: language === 'id'
+          ? `Ping GAS tertunda (>7m). Cek editor Google Apps Script.`
+          : `GAS ping delayed (>7m). Check Google Apps Script editor.`,
+      };
+    }
+
+    return {
+      relativeText,
+      fullLabel,
+      status: 'stale',
+      dotClass: 'bg-rose-400',
+      badgeClass: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
+      title: language === 'id'
+        ? `Tidak ada ping GAS > 15 menit. Pastikan trigger GAS aktif.`
+        : `No GAS ping for > 15m. Ensure GAS trigger is active.`,
+    };
+  };
+
   if (loading && !state) {
     return (
       <div className="py-24 text-center">
@@ -180,6 +270,7 @@ export default function DashboardPage() {
   }
 
   const autonomy = getAutonomyBadge(state?.autonomyLevel ?? 1);
+  const gasStatus = getGasStatus();
 
   return (
     <div className="space-y-8">
@@ -213,6 +304,15 @@ export default function DashboardPage() {
                   {strings.statusDryRun}
                 </span>
               )}
+
+              {/* GAS Trigger / Ping Indicator Badge */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs border font-medium shadow-sm transition-all ${gasStatus.badgeClass}`}
+                title={gasStatus.title}
+              >
+                <span className={`w-2 h-2 rounded-full ${gasStatus.dotClass}`} />
+                <span className="font-mono text-[11px] font-semibold">{gasStatus.fullLabel}</span>
+              </div>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
               {state?.persona?.identityName || 'Avery'} • {strings.brandName}
@@ -366,17 +466,28 @@ export default function DashboardPage() {
             <span className="text-xs font-medium">{language === 'id' ? 'Siklus 5-Menit Terakhir' : 'Last 5-Min Cycle'}</span>
             <Zap className="w-4 h-4 text-zinc-500" />
           </div>
-          <span
-            className={`inline-block px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
-              state?.lastAction?.action === 'POST'
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                : state?.lastAction?.action === 'REPLY'
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-            }`}
-          >
-            {state?.lastAction?.action || 'IDLE'}
-          </span>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`inline-block px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
+                state?.lastAction?.action === 'POST'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  : state?.lastAction?.action === 'REPLY'
+                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+              }`}
+            >
+              {state?.lastAction?.action || 'IDLE'}
+            </span>
+
+            {/* GAS Trigger indicator status pill */}
+            <span
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border font-medium ${gasStatus.badgeClass}`}
+              title={gasStatus.title}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${gasStatus.dotClass}`} />
+              GAS: {gasStatus.relativeText}
+            </span>
+          </div>
           <p className="text-[10px] text-zinc-400 truncate mt-1.5" title={state?.lastAction?.summary || 'No recent activity'}>
             {state?.lastAction?.summary || (language === 'id' ? 'Menunggu ping GAS berikutnya...' : 'Awaiting next GAS ping...')}
           </p>
